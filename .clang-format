@@ -1,0 +1,84 @@
+#
+# .clang-format - formatting configuration for the FreeRTOS demo application
+#
+# Matches the existing style of src/ and board/: Allman braces,
+# 4-space indent, ~80-column wrapping with aligned assignments and trailing
+# comments.
+#
+# Run with:  clang-format -i src/*.c src/*.h board/**/*.c board/**/*.h
+# (use "make format" once wired into the Makefile)
+#
+---
+Language:        Cpp
+BasedOnStyle:    LLVM
+
+# Layout
+IndentWidth:     4
+TabWidth:        4
+UseTab:          Never
+ColumnLimit:     90
+
+# Braces: opening brace on its own line (Allman)
+BreakBeforeBraces: Allman
+
+# Alignment (matches existing aligned '=' and trailing comments)
+AlignConsecutiveAssignments:
+  Enabled:       true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveDeclarations:
+  Enabled:       true
+AlignConsecutiveMacros:
+  Enabled:       true
+AlignTrailingComments:
+  Kind:          Always
+
+# Pointers attach to the name: char *buf;
+PointerAlignment: Right
+DerivePointerAlignment: false
+
+# Spaces
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: Never
+SpaceAroundPointerQualifiers: Default
+Cpp11BracedListStyle: true
+
+# Indentation
+IndentCaseLabels: false
+IndentCaseBlocks: false
+IndentGotoLabels: false
+IndentPPDirectives: None
+AccessModifierOffset: -4
+
+# Wrapping
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Never
+BinPackParameters: true
+BinPackArguments: true
+
+# Preserve include order (HAL/FreeRTOS headers are order-sensitive)
+SortIncludes:    false
+IncludeBlocks:   Preserve
+
+# Misc
+MaxEmptyLinesToKeep: 2
+ReflowComments:  true
+FixNamespaceComments: true
+
+# GCC/ARM attributes and FreeRTOS-style macros stay put
+ForEachMacros:
+  - LIST_FOR_EACH
+StatementMacros:
+  - EXPORT_SYMBOL
+  - DEFINE_PARAM
+AttributeMacros:
+  - __weak
+  - __packed
+  - __aligned
+  - __section
+  - __unused
+  - __noreturn
+  - __used

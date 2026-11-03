@@ -1,0 +1,28 @@
+#
+# .clang-tidy - static analysis configuration for the FreeRTOS demo application (DNFR-004)
+#
+# Only the project's own code (src, board) is reported on; the
+# STM32Cube and FreeRTOS headers are still parsed but never flagged.
+#
+# Run with:  make lint         (report findings)
+#            make lint-strict  (fail on any finding)
+#
+
+Checks: >
+  -*,
+  bugprone-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-use-nullptr,
+  performance-*,
+  portability-*,
+  -bugprone-reserved-identifier,
+  -clang-diagnostic-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-member-init,
+  -misc-no-recursion,
+  -performance-weak-try-catch
+
+# Restrict findings to the project's own sources and headers.
+HeaderFilterRegex: '(src|board|tests)/.*\.[chs]$'
+FormatStyle: none

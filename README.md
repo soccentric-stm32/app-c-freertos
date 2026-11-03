@@ -6,7 +6,21 @@ FreeRTOS demo application for the NUCLEO-F767ZI that runs under the A/B bootload
 |---|---|
 | Requirements | [SRS.md](SRS.md) — SRS-DEMO-F767 (v0.1 draft) |
 | Board | NUCLEO-F767ZI — see [Hardware.md](https://github.com/soccentric-stm32/soccentric-stm32-validation-firmware/blob/HEAD/Hardware.md) |
-| Status | Specification only; no implementation yet |
+| Status | Skeleton: 216 MHz clock, TIM6 HAL tick, FreeRTOS with the LED task (HEARTBEAT on LD1). Comms, Button, Health and the bootloader image file still to come. |
+| Build environment | [docker/README.md](docker/README.md): same `stm32-dev` image as the validation firmware (STM32CubeF7 v1.17.4, arm-none-eabi-gcc 13.2) |
+
+## Build and flash
+
+Everything runs in the `stm32-dev` container through `scripts/docker-dev.sh`:
+
+```bash
+scripts/build.sh            # cmake configure + ninja build (in the container)
+scripts/build.sh clean      # from scratch
+make flash                  # flash build/app.elf over SWD, verify, reset
+make help                   # all targets (lint, debug, serial, ...)
+```
+
+Outputs in `build/`: `app.elf`, `app.bin`, `app.hex`, `app.map`. `make flash` programs `app.elf` at `0x0800C000` (the bootloader slot). It starts only through the bootloader, which must be installed first.
 
 ## Related projects
 
