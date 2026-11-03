@@ -1,0 +1,137 @@
+# ============================================================
+# .gitignore — STM32 bare-metal project (NUCLEO-F767ZI)
+# Toolchain: arm-none-eabi-gcc, CMake/Ninja/Make in Docker,
+# OpenOCD + ST-LINK, STM32CubeF7.
+# ============================================================
+
+# --- Build output directories -------------------------------
+build/
+build-*/
+out/
+output/
+Debug/
+Release/
+dist/
+
+# --- Compiled / linked artifacts and intermediate files -----
+*.o
+*.obj
+*.d
+*.a
+*.lib
+*.elf
+*.bin
+*.hex
+*.axf
+*.map
+*.lst
+*.lss
+*.srec
+*.su
+*.gcno
+*.gcda
+*.gcov
+
+# --- CMake / Ninja ------------------------------------------
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+.ninja_deps
+.ninja_log
+build.ninja
+rules.ninja
+
+# --- Make ---------------------------------------------------
+*.mod
+make.out
+*.mk.bak
+
+# --- Debugger / flashing tool artifacts ---------------------
+.gdb_history
+*.core
+openocd.log
+*.oocd
+
+# --- STM32CubeIDE / CubeMX / Eclipse metadata ---------------
+# (Keep .ioc — it is the source of truth for the project config)
+.settings/
+.project
+.cproject
+.metadata/
+.mxproject
+CubeMxBackup/
+*.launch
+*.dbgconf
+*.swd
+
+# --- Keil / IAR (if the tree is ever opened in them) --------
+*.uvprojx.bak
+*.uvguix.*
+JLinkLog.txt
+JLinkSettings.ini
+*.dep
+*.log
+
+# --- Python (helper scripts) --------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Editor / IDE -------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
+\#*\#
+.elc
+
+# --- Docker --------------------------------------------------
+docker/*.env
+docker/.env
+
+# --- OS junk -------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.Trash-*/
+
+# --- Temporary / local files --------------------------------
+*.bak
+*.tmp
+*.orig
+*.rej
+*.log
+tags
+TAGS
+.ccls-cache/
+.cache/
+
+# --- Exception: intentional firmware dumps ------------------
+# backup/ holds deliberately stored factory firmware; never ignore it
+# even though it matches the binary-artifact patterns above.
+!backup/**
+!backup/
+# host-tool reports (generated)
+reports/
+
+# --- Secrets -------------------------------------------------
+.env
+*.env
