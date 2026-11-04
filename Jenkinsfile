@@ -82,7 +82,7 @@ pipeline {
                     python3 - <<'PY'
 from pathlib import Path
 
-# Values shared with soccentric-stm32-bootloader (LAY-001..LAY-005, HND-003,
+# Values shared with bootloader (LAY-001..LAY-005, HND-003,
 # Appendix B). If this stage fails, the application and BOOT have drifted.
 expected = {
     "APP_SLOT_BASE": 0x0800C000,

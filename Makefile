@@ -30,7 +30,7 @@
 #   BUILD_TYPE   Release | Debug                       (Release, as build.sh)
 #   NATIVE       1 = flash/debug/serial with host tools (0)
 #   BOOTCTL      bootctl.py used by make flash
-#                (default ../soccentric-stm32-bootloader/tools/bootctl.py)
+#                (default ../bootloader/tools/bootctl.py)
 #   PORT         serial port for make flash (default: bootctl auto-detect)
 #
 
@@ -42,7 +42,7 @@ ELF        := $(BUILD_DIR)/app.elf
 IMAGE      := $(BUILD_DIR)/demo.img
 DEV        := scripts/docker-dev.sh
 OPENOCD    := openocd -f board/st_nucleo_f7.cfg
-BOOTCTL    ?= ../soccentric-stm32-bootloader/tools/bootctl.py
+BOOTCTL    ?= ../bootloader/tools/bootctl.py
 PORT       ?=
 PYTHON     ?= python3
 

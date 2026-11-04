@@ -7,7 +7,7 @@
 | **Author** | Sandesh Ghimire <sandesh@soccentric.com> |
 | **Date** | 2026-11-03 |
 | **Status** | Draft for review |
-| **Hardware** | NUCLEO-F767ZI, STM32F767ZIT6 rev Z (see [soccentric-stm32-validation-firmware/Hardware.md](https://github.com/soccentric-stm32/soccentric-stm32-validation-firmware/blob/HEAD/Hardware.md)) |
+| **Hardware** | NUCLEO-F767ZI, STM32F767ZIT6 rev Z (see [validation-firmware/Hardware.md](https://github.com/soccentric-stm32/validation-firmware/blob/HEAD/Hardware.md)) |
 | **Software base** | FreeRTOS V10.2.0 and HAL/LL from STM32CubeF7 v1.17.4 as shipped (same as HWVAL); flatcc runtime for FlatBuffers |
 
 ---
@@ -76,11 +76,11 @@ As in [BOOT] §1.4: **shall / should / may**, IDs `<AREA>-<NNN>`, and methods
 
 | ID | Document |
 |---|---|
-| [HW] | [soccentric-stm32-validation-firmware/Hardware.md](https://github.com/soccentric-stm32/soccentric-stm32-validation-firmware/blob/HEAD/Hardware.md) — board reference (LEDs §9, button) |
-| [HWVAL] | [soccentric-stm32-validation-firmware/SRS.md](https://github.com/soccentric-stm32/soccentric-stm32-validation-firmware/blob/HEAD/SRS.md) — HWVAL, for shared build and board conventions |
-| [BOOT] | [soccentric-stm32-bootloader/SRS.md](https://github.com/soccentric-stm32/soccentric-stm32-bootloader/blob/HEAD/SRS.md) — SRS-BOOT-F767 |
-| [GUI] | [soccentric-stm32-validation-gui/SRS.md](https://github.com/soccentric-stm32/soccentric-stm32-validation-gui/blob/HEAD/SRS.md) — SRS-GUI-F767 |
-| [LINK] | [soccentric-stm32-validation-gui/SRS.md, Appendix A](https://github.com/soccentric-stm32/soccentric-stm32-validation-gui/blob/HEAD/SRS.md#appendix-a--hwlink-protocol) — HWLINK protocol (normative) |
+| [HW] | [validation-firmware/Hardware.md](https://github.com/soccentric-stm32/validation-firmware/blob/HEAD/Hardware.md) — board reference (LEDs §9, button) |
+| [HWVAL] | [validation-firmware/SRS.md](https://github.com/soccentric-stm32/validation-firmware/blob/HEAD/SRS.md) — HWVAL, for shared build and board conventions |
+| [BOOT] | [bootloader/SRS.md](https://github.com/soccentric-stm32/bootloader/blob/HEAD/SRS.md) — SRS-BOOT-F767 |
+| [GUI] | [validation-gui/SRS.md](https://github.com/soccentric-stm32/validation-gui/blob/HEAD/SRS.md) — SRS-GUI-F767 |
+| [LINK] | [validation-gui/SRS.md, Appendix A](https://github.com/soccentric-stm32/validation-gui/blob/HEAD/SRS.md#appendix-a--hwlink-protocol) — HWLINK protocol (normative) |
 | [FRTOS] | FreeRTOS V10.2.0 reference manual |
 | [RM0410] | ST, STM32F76xxx/F77xxx reference manual |
 | [UM1974] | ST, STM32 Nucleo-144 boards user manual |
@@ -320,5 +320,5 @@ Fault pattern on LD3 (DGEN-004, not selectable): three short flashes, pause, rep
 | ID | Item | Status |
 |---|---|---|
 | OPEN-D01 | Decide whether DEMO should also build without BOOT (linked at `0x0800 0000`) for debugging. | Open |
-| OPEN-D02 | Agree the common source directory shared with HWVAL (DGEN-007): which board and clock files move out of `soccentric-stm32-validation-firmware`, and how the other repositories consume them (git submodule or copy). | Open |
+| OPEN-D02 | Agree the common source directory shared with HWVAL (DGEN-007): which board and clock files move out of `validation-firmware`, and how the other repositories consume them (git submodule or copy). | Open |
 | OPEN-D03 | Confirm the LD1 solder bridge (PB0 vs PA5) on this board (HWVAL OPEN-002). | Open bench item |
