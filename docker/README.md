@@ -23,7 +23,7 @@ host requirements, debugging) is in the validation firmware's
 ```bash
 scripts/docker-dev.sh build      # build the image (automatic on first use)
 scripts/build.sh                 # configure + build in the container
-make flash                       # flash build/app.elf over SWD, verify, reset
+make flash                       # upload build/demo.img through BOOT (bootctl)
 make serial                      # ST-LINK VCP console, 115200 8N1
 ```
 

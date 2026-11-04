@@ -13,8 +13,8 @@
 #   make build          configure (if needed) and build
 #   make clean          remove the build directory
 #   make rebuild        clean, then build
-#   make flash          build, then flash app.elf, verify and reset
-#   make erase          erase the whole flash
+#   make flash          build, then upload demo.img through BOOT (bootctl)
+#   make erase-all      erase the whole flash (asks for confirmation)
 #   make reset          reset the board
 #   make debug          build, flash, then GDB halted at reset
 #   make gdbserver      OpenOCD GDB server on :3333
@@ -29,6 +29,9 @@
 # Variables (override on the command line, e.g. make BUILD_TYPE=Debug):
 #   BUILD_TYPE   Release | Debug                       (Release, as build.sh)
 #   NATIVE       1 = flash/debug/serial with host tools (0)
+#   BOOTCTL      bootctl.py used by make flash
+#                (default ../soccentric-stm32-bootloader/tools/bootctl.py)
+#   PORT         serial port for make flash (default: bootctl auto-detect)
 #
 
 BUILD_TYPE ?= Release
@@ -36,13 +39,17 @@ NATIVE     ?= 0
 
 BUILD_DIR  := build
 ELF        := $(BUILD_DIR)/app.elf
+IMAGE      := $(BUILD_DIR)/demo.img
 DEV        := scripts/docker-dev.sh
 OPENOCD    := openocd -f board/st_nucleo_f7.cfg
+BOOTCTL    ?= ../soccentric-stm32-bootloader/tools/bootctl.py
+PORT       ?=
+PYTHON     ?= python3
 
 .DEFAULT_GOAL := build
 
-.PHONY: all build configure clean rebuild lint lint-strict flash erase reset \
-        debug gdbserver serial probe size image help
+.PHONY: all build configure clean rebuild lint lint-strict flash erase-all \
+        reset debug gdbserver serial probe size image help
 
 all: build
 
@@ -71,6 +78,21 @@ lint-strict:
 	$(DEV) run cmake -S /work -B /work/$(BUILD_DIR) -G Ninja -DAPP_LINT_STRICT=ON
 	$(DEV) run cmake --build /work/$(BUILD_DIR) --target clang-tidy
 
+# A-6: never program the raw ELF into a slot. BOOT only starts an image
+# that has its 256-byte header, metadata and records, which bootctl writes.
+flash: build
+	@test -f $(IMAGE) || { echo "error: $(IMAGE) not found, run make build"; exit 1; }
+	@test -f $(BOOTCTL) || { echo "error: $(BOOTCTL) not found; set BOOTCTL=/path/to/bootctl.py"; exit 1; }
+	$(PYTHON) $(BOOTCTL) $(if $(PORT),--port $(PORT),) update $(IMAGE) --activate
+
+ERASE_CMD = $(if $(filter 1,$(NATIVE)),$(OPENOCD) -c "init; reset halt; flash erase_sector 0 0 last; exit",$(DEV) erase)
+
+erase-all:
+	@echo "WARNING: this erases the whole flash: BOOT, both metadata sectors"
+	@echo "         and both application slots."
+	@printf "Type 'yes' to continue: " && read answer && [ "$$answer" = "yes" ]
+	$(ERASE_CMD)
+
 size:
 	@test -f $(ELF) || { echo "error: $(ELF) not found, run make build"; exit 1; }
 	$(DEV) run arm-none-eabi-size /work/$(ELF)
@@ -79,12 +101,6 @@ image:
 	$(DEV) build
 
 ifeq ($(NATIVE),1)
-
-flash: build
-	$(OPENOCD) -c "program $(ELF) verify reset exit"
-
-erase:
-	$(OPENOCD) -c "init; reset halt; flash erase_sector 0 0 last; exit"
 
 reset:
 	$(OPENOCD) -c "init; reset run; exit"
@@ -104,12 +120,6 @@ probe:
 	st-info --probe
 
 else
-
-flash: build
-	$(DEV) flash $(ELF)
-
-erase:
-	$(DEV) erase
 
 reset:
 	$(DEV) reset

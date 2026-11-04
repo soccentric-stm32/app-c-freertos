@@ -141,11 +141,15 @@ cmd_flash() {
 
     local file addr
     file="$(container_path "$1")"
-    addr="${2:-0x08000000}"
+    addr="${2:-}"
 
     case "$file" in
         *.elf|*.hex) in_container openocd -f "$OPENOCD_CFG" -c "program $file verify reset exit" ;;
-        *.bin)       in_container openocd -f "$OPENOCD_CFG" -c "program $file $addr verify reset exit" ;;
+        *.bin)
+            # A raw .bin defaults to 0x08000000, which is BOOT.  Requiring an
+            # explicit address stops a stray "flash demo.bin" from wiping it.
+            [[ -n "$addr" ]] || die "flash: pass an explicit address for .bin (BOOT lives at 0x08000000); use .elf/.hex or the bootloader image"
+            in_container openocd -f "$OPENOCD_CFG" -c "program $file $addr verify reset exit" ;;
         *)           die "Unsupported file type: $1 (use .elf, .hex or .bin)" ;;
     esac
 }

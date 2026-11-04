@@ -42,7 +42,8 @@ Everything runs in the `stm32-dev` container through `scripts/docker-dev.sh`:
 ```bash
 scripts/build.sh            # cmake configure + ninja build (in the container)
 scripts/build.sh clean      # from scratch
-make flash                  # flash build/app.elf over SWD, verify, reset
+make flash                  # upload build/demo.img through BOOT (bootctl)
+make erase-all              # erase BOOT + slots (asks for confirmation)
 make help                   # all targets (lint, debug, serial, ...)
 ```
 
@@ -54,9 +55,17 @@ Outputs in `build/`:
 | `demo.elf`, `demo.bin`, `demo.hex`, `demo.map` | Same image under the SRS names (DGEN-001) |
 | `demo.img` | BOOT image: 256-byte header + `demo.bin` (`scripts/mkimage.py`) |
 
-`make flash` programs `app.elf` at `0x0800C000` (the bootloader slot). It
-starts only through the bootloader, which must be installed first. Use
-`demo.img` with the GUI or `bootctl.py` for an A/B update over UART.
+`make flash` builds `demo.img` and uploads it through the bootloader with
+`bootctl.py update --activate` over the ST-LINK VCP. BOOT must be installed
+first. Never program `app.elf` or `app.bin` into a slot over SWD: BOOT only
+starts an image that has its 256-byte header, metadata and records, which
+the `.img` carries. Point `BOOTCTL` at `bootctl.py` or `PORT` at the serial
+device if the defaults do not fit:
+
+```bash
+make flash PORT=/dev/ttyACM0
+make flash BOOTCTL=/path/to/bootctl.py
+```
 
 The build prints the flash/RAM footprint and fails if it exceeds 128 KB /
 64 KB (DNFR-001). `-DDEMO_FAIL_HEALTH=ON` forces the pending-slot health
