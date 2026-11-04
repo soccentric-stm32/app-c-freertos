@@ -49,7 +49,7 @@
 
 #define COMMS_TASK_STACK_WORDS   1536U
 #define COMMS_TASK_PRIORITY      (tskIDLE_PRIORITY + 4U)
-#define COMMS_EVENT_QUEUE_LEN    8U
+#define COMMS_EVENT_QUEUE_LEN    16U
 #define COMMS_LOOP_MS            10U
 #define COMMS_CHECKIN_MS         500U
 #define COMMS_TX_TIMEOUT_MS      200U
@@ -707,5 +707,7 @@ void comms_post_button_event(uint8_t press, uint8_t pattern, uint16_t period)
         .pattern = pattern,
         .period = period
     };
-    (void)xQueueSend(comms_queue, &event, 0U);
+    /* BTN-004: a short press must not be lost just because a burst of RX
+     * events filled the queue; wait a little for a slot. */
+    (void)xQueueSend(comms_queue, &event, pdMS_TO_TICKS(20));
 }
