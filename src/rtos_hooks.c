@@ -1,60 +1,43 @@
 /*
- * rtos_hooks.c - FreeRTOS hooks and fault handlers (DRT-002, DGEN-004)
+ * rtos_hooks.c - FreeRTOS error hooks (DRT-002)
  *
  * Author:  Sandesh Ghimire <sandesh@soccentric.com>
  * Date:    2026-11-03
  * Target:  STM32F767ZIT6
- * SRS:     DRT-002 (assert, stack overflow, malloc failed), DGEN-004
+ * SRS:     DRT-002 (assert, stack overflow, malloc failed)
  *
- * Each error turns LD3 on for about 2 s and resets. Saving the reason and
- * the fault registers to a no-init area for the Status message (DGEN-004)
- * comes with the Comms task.
+ * Each hook records the reason in the no-init fault area (DGEN-004) and
+ * resets through the common fault path, so the next Status reports it.
  */
 
-#include "stm32f7xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "led_task.h"
+#include "app_fault.h"
 
-void app_fault_assert(const char *file, int line);
-void vApplicationStackOverflowHook(TaskHandle_t task, char *name);
-void vApplicationMallocFailedHook(void);
-void HardFault_Handler(void);
-
-/* Works with interrupts off and without the scheduler. */
-static void app_fatal(void) __attribute__((noreturn));
-static void app_fatal(void)
+static const char *current_task_name(void)
 {
-    __disable_irq();
-    app_led3_set(true);
-    for (volatile uint32_t n = (SystemCoreClock / 4U) * 2U; n > 0U; n--) {
-        __NOP();
+    if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
+        return pcTaskGetName(NULL);
     }
-    NVIC_SystemReset();
+    return "startup";
 }
 
 void app_fault_assert(const char *file, int line)
 {
-    (void)file;
-    (void)line;
-    app_fatal();
+    app_fault_fatal(APP_FAULT_ASSERT, current_task_name(), file,
+                     (uint32_t)line);
 }
 
 void vApplicationStackOverflowHook(TaskHandle_t task, char *name)
 {
     (void)task;
-    (void)name;
-    app_fatal();
+    app_fault_fatal(APP_FAULT_STACK_OVERFLOW, name, "FreeRTOS", 0U);
 }
 
 void vApplicationMallocFailedHook(void)
 {
-    app_fatal();
-}
-
-/* MemManage, BusFault and UsageFault are not enabled separately, so they
- * escalate here. */
-void HardFault_Handler(void)
-{
-    app_fatal();
+    /* Store the free heap in the line field so Status can report how much
+     * was left when the allocation failed. */
+    app_fault_fatal(APP_FAULT_MALLOC_FAILED, current_task_name(),
+                    "malloc", (uint32_t)xPortGetFreeHeapSize());
 }

@@ -19,10 +19,16 @@ Checks: >
   -bugprone-reserved-identifier,
   -clang-diagnostic-*,
   -cppcoreguidelines-avoid-magic-numbers,
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-macro-to-enum,
+  -misc-header-include-cycle,
+  -misc-include-cleaner,
+  -performance-no-int-to-ptr,
   -cppcoreguidelines-pro-type-member-init,
   -misc-no-recursion,
   -performance-weak-try-catch
 
 # Restrict findings to the project's own sources and headers.
-HeaderFilterRegex: '(src|board|tests)/.*\.[chs]$'
+HeaderFilterRegex: '(^|/)(src|board|tests)/[^/]+\.[chs]$'
 FormatStyle: none

@@ -4,41 +4,93 @@
  * Author:  Sandesh Ghimire <sandesh@soccentric.com>
  * Date:    2026-11-03
  * Target:  NUCLEO-F767ZI (STM32F767ZIT6), started by BOOT from slot A or B
- * SRS:     DBT-002, DBT-003, DGEN-003, DRT-001, DRT-004, LED-002
+ * SRS:     DBT-001..DBT-006, DGEN-001..DGEN-006, DRT-004, section 5
  *
- * Implemented so far: clocks, HAL time base, LEDs and the LED task.
- * Still to come, section by section: Health (IWDG + CONFIRMED record,
- * section 9), Comms (USART3 + HWLINK, section 8), Button (section 7),
- * the boot hand-over record (DBT-004) and the image file (DGEN-001).
+ * DEMO runs only under BOOT.  It keeps the four documented tasks (Health,
+ * Comms, Button, LED), speaks HWLINK on the ST-LINK VCP, and confirms a
+ * pending slot after its health check.  Everything is created before the
+ * scheduler starts; no task allocates memory afterwards.
  */
 
 #include "stm32f7xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "app_error.h"
+#include "app_fault.h"
+#include "boot_contract.h"
+#include "button_task.h"
+#include "cache_mpu.h"
 #include "clock.h"
+#include "comms_task.h"
+#include "handover.h"
+#include "health_task.h"
+#include "iwdg.h"
 #include "led_task.h"
+#include "reset_cause.h"
+#include "uart3.h"
+
+static void startup_fail(const char *where) __attribute__((noreturn));
+static void startup_fail(const char *where)
+{
+    app_fault_fatal(APP_FAULT_STARTUP, "main", where, 0U);
+}
 
 int main(void)
 {
-    /* DBT-002: SystemInit already pointed VTOR at the slot (0x0800C000);
-     * the IWDG refresh joins here once BOOT starts it (TRY-004). */
+    /* DBT-002: first instructions, before any interrupt can use the table. */
+    SCB->VTOR = APP_SLOT_BASE;
+    app_iwdg_early_kick();
+    app_fault_boot_start();
+
+    /* DGEN-005: keep the flags for Status, then clear them. */
+    app_reset_cause_capture();
+
     (void)HAL_Init();
     app_clock_init();
-    app_leds_init();
+    app_cache_mpu_init();
 
-    /* DRT-004: every task exists before the scheduler starts. */
+    /* DGEN-004: take MemManage/BusFault/UsageFault to their own handlers so
+     * the saved reason is specific; HardFault catches escalations. */
+    SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk |
+                  SCB_SHCSR_USGFAULTENA_Msk;
+    __DSB();
+    __ISB();
+
+    /* DBT-004 / DBT-005: hand-over record and backup-domain access. */
+    app_handover_read();
+
+    app_leds_init();
+    app_iwdg_init();
+
+    /* LED-005: latch LD3 for the last fault or watchdog reset. */
+    if (app_fault_is_valid()) {
+        app_error_set(APP_ERROR_FAULT);
+    }
+    if (app_reset_was_error()) {
+        app_error_set(APP_ERROR_WATCHDOG);
+    }
+
+    /* COM-001/002: USART3 must be running before the health check. */
+    if (!app_uart3_init()) {
+        startup_fail("uart3 init");
+    }
+
+    /* DRT-004: every task and queue exists before vTaskStartScheduler(). */
     if (!led_task_create()) {
-        app_led3_set(true);
-        while (1) {
-            __NOP();
-        }
+        startup_fail("led task");
+    }
+    if (!button_task_create()) {
+        startup_fail("button task");
+    }
+    if (!comms_task_create()) {
+        startup_fail("comms task");
+    }
+    if (!health_task_create()) {
+        startup_fail("health task");
     }
 
     vTaskStartScheduler();
 
-    /* Only reached when the idle task cannot be created. */
-    app_led3_set(true);
-    while (1) {
-        __NOP();
-    }
+    /* Only reached when the idle or timer task could not be created. */
+    startup_fail("scheduler");
 }

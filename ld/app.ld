@@ -107,6 +107,28 @@ SECTIONS
         _ebss = .;
     } > DTCMRAM
 
+    /* Fault record survives a system reset (DGEN-004).  Start-up code must
+     * not clear this section; only .bss is cleared. */
+    .noinit (NOLOAD) :
+    {
+        . = ALIGN(4);
+        _snoinit = .;
+        KEEP(*(.noinit .noinit.*))
+        . = ALIGN(4);
+        _enoinit = .;
+    } > DTCMRAM
+
+    /* DMA buffers are in SRAM2 and covered by the non-cacheable MPU region
+     * set up in cache_mpu.c (COM-002). */
+    .dma_buffer (NOLOAD) :
+    {
+        . = ALIGN(32);
+        _sdma_buffer = .;
+        KEEP(*(.dma_buffer .dma_buffer.*))
+        . = ALIGN(32);
+        _edma_buffer = .;
+    } > SRAM2
+
     ._user_heap_stack (NOLOAD) :
     {
         . = ALIGN(8);
@@ -124,3 +146,5 @@ ASSERT(ORIGIN(FLASH) == 0x0800C000,
        "DBT-001: the vector table must be at the slot start 0x0800C000")
 ASSERT(__app_image_end <= 0x08100000,
        "DBT-001: image exceeds the 976 KB bootloader slot")
+ASSERT(SIZEOF(.dma_buffer) <= LENGTH(SRAM2),
+       "COM-002: DMA buffers do not fit in SRAM2")

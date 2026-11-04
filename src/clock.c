@@ -12,13 +12,13 @@
 
 #include "stm32f7xx_hal.h"
 #include "app_board.h"
+#include "app_fault.h"
 #include "clock.h"
 
+static void clock_fail(void) __attribute__((noreturn));
 static void clock_fail(void)
 {
-    while (1) { /* PLL or over-drive did not come up: marker for the debugger */
-        __NOP();
-    }
+    app_fault_fatal(APP_FAULT_STARTUP, "clock", "HSE/PLL/over-drive", 0U);
 }
 
 void app_clock_init(void)
@@ -64,6 +64,6 @@ void app_clock_init(void)
 
     __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
     __HAL_FLASH_ART_ENABLE();
-    SCB_EnableICache();
-    SCB_EnableDCache();
+    /* Caches and the non-cacheable DMA MPU region are enabled together in
+     * app_cache_mpu_init() after this function. */
 }

@@ -1,0 +1,344 @@
+// hwlink.fbs - HWLINK control protocol (LINK A.5)
+//
+// Author:  Sandesh Ghimire <sandesh@soccentric.com>
+// Date:    2026-11-03
+// SRS:     SRS-GUI-F767 Appendix A, SRS-DEMO-F767 section 8
+//
+// The schema is deliberately append-only: fields may be added at the end
+// and the protocol minor version is raised, but nothing is removed or
+// reordered within major version 1 (LNK-013).
+
+namespace hwlink;
+
+file_identifier "HWLK";
+file_extension "hwlink";
+
+// --------------------------------------------------------------------- enums
+
+enum Role : ubyte {
+    HWVAL       = 1,
+    BOOTLOADER  = 2,
+    DEMO        = 3
+}
+
+enum Error : ushort {
+    NONE            = 0,
+    MALFORMED       = 1,
+    UNSUPPORTED     = 2,
+    BAD_ARGUMENT    = 3,
+    BAD_STATE       = 4,
+    BUSY            = 5,
+    NOT_FOUND       = 6,
+    BAD_HEADER      = 7,
+    BAD_LAYOUT      = 8,
+    BAD_VECTORS     = 9,
+    OUT_OF_ORDER    = 10,
+    FLASH_ERROR     = 11,
+    CRC_MISMATCH    = 12,
+    WRONG_FLASH_MODE = 13
+}
+
+enum LogLevel : ubyte {
+    DEBUG = 0,
+    INFO  = 1,
+    WARN  = 2,
+    ERROR = 3
+}
+
+enum FlashMode : ubyte {
+    UNKNOWN     = 0,
+    SINGLE_BANK = 1,
+    DUAL_BANK   = 2
+}
+
+enum LedId : ubyte {
+    LD1 = 1,
+    LD2 = 2,
+    LD3 = 3
+}
+
+enum LedPattern : ubyte {
+    OFF         = 0,
+    ON          = 1,
+    BLINK       = 2,
+    HEARTBEAT   = 3,
+    FAST        = 4,
+    CHASE       = 5,
+    MORSE_SOS   = 6
+}
+
+enum Slot : ubyte {
+    UNKNOWN = 0,
+    A       = 1,
+    B       = 2
+}
+
+enum TrialState : ubyte {
+    UNKNOWN   = 0,
+    CONFIRMED = 1,
+    PENDING   = 2
+}
+
+enum HealthState : ubyte {
+    NOT_REQUIRED = 0,
+    RUNNING      = 1,
+    PASSED       = 2,
+    FAILED       = 3
+}
+
+enum ButtonPress : ubyte {
+    SHORT = 1,
+    LONG  = 2
+}
+
+enum BootOutcome : ubyte {
+    UNKNOWN       = 0,
+    BOOTED        = 1,
+    ROLLED_BACK   = 2,
+    UPDATE_MODE   = 3
+}
+
+// ------------------------------------------------------------------ common
+
+table Hello {
+    host_name:string;
+    host_version:string;
+    protocol_minor:uint16;
+}
+
+table HelloReply {
+    role:Role = DEMO;
+    firmware_name:string;
+    version:string;
+    commit:string;
+    build_time:string;
+    uid:ulong;
+    dev_id:uint32;
+    rev_id:uint32;
+    flash_mode:FlashMode;
+    protocol_major:uint16;
+    protocol_minor:uint16;
+    max_frame:uint16;
+    detail:string;
+}
+
+table Ping {
+    host_time_ms:ulong;
+}
+
+table Pong {
+    uptime_ms:ulong;
+}
+
+table SetBaud {
+    rate:uint32;
+}
+
+table Ack {
+    seq:uint16;
+    next_offset:uint32;
+}
+
+table Nak {
+    seq:uint16;
+    error:Error;
+    detail:string;
+    expected_offset:uint32;
+}
+
+table Log {
+    level:LogLevel;
+    text:string;
+}
+
+table Progress {
+    operation:string;
+    done:uint32;
+    total:uint32;
+}
+
+table Reset {
+}
+
+// -------------------------------------------------------------------- DEMO
+
+table SetLed {
+    led:LedId = LD1;
+    pattern:LedPattern;
+    period_ms:uint16;
+    force:bool;
+}
+
+table SetLedAll {
+    pattern:LedPattern;
+    period_ms:uint16;
+}
+
+table ClearFault {
+}
+
+table GetStatus {
+}
+
+table EnterBootloader {
+}
+
+table LedState {
+    led:LedId = LD1;
+    pattern:LedPattern;
+    period_ms:uint16;
+}
+
+table TaskStats {
+    name:string;
+    priority:ubyte;
+    state:ubyte;
+    stack_high_water:uint16;
+}
+
+table FaultInfo {
+    present:bool;
+    reason:string;
+    cfsr:uint32;
+    hfsr:uint32;
+    mmfar:uint32;
+    bfar:uint32;
+    pc:uint32;
+    lr:uint32;
+    task:string;
+    file:string;
+    line:uint32;
+}
+
+table Status {
+    firmware_name:string;
+    version:string;
+    commit:string;
+    build_time:string;
+    uid:ulong;
+    uptime_ms:ulong;
+    slot:Slot;
+    trial:TrialState;
+    trial_count:ubyte;
+    health:HealthState;
+    reset_cause:uint32;
+    reset_cause_text:string;
+    fault:FaultInfo;
+    leds:[LedState];
+    tasks:[TaskStats];
+    heap_free:uint32;
+    heap_min_free:uint32;
+    protocol_major:uint16;
+    protocol_minor:uint16;
+}
+
+table ButtonEvent {
+    press:ButtonPress = SHORT;
+    pattern:LedPattern;
+    period_ms:uint16;
+}
+
+// -------------------------------------------------------------------- BOOT
+
+table ImageHeader {
+    magic:uint32;
+    header_version:uint16;
+    header_size:uint16;
+    image_type:uint32;
+    version:uint32;
+    image_size:uint32;
+    image_crc32:uint32;
+    load_address:uint32;
+    entry_address:uint32;
+    build_timestamp:uint32;
+    git_commit:[ubyte];
+    name:string;
+}
+
+table BootSlotInfo {
+    slot:Slot;
+    present:bool;
+    valid:bool;
+    pending:bool;
+    confirmed:bool;
+    rejected:bool;
+    sequence:uint32;
+    trial_count:ubyte;
+    version:uint32;
+    build_timestamp:uint32;
+    git_commit:string;
+    name:string;
+    image_size:uint32;
+    detail:string;
+}
+
+table BootInfo {
+    active_slot:Slot;
+    last_outcome:BootOutcome;
+    rejected_slot:Slot;
+    flash_mode:FlashMode;
+    slots:[BootSlotInfo];
+}
+
+table UpdateBegin {
+    header:ImageHeader;
+}
+
+table UpdateData {
+    offset:uint32;
+    data:[ubyte];
+}
+
+table UpdateEnd {
+}
+
+table UpdateResult {
+    success:bool;
+    image_crc32:uint32;
+    error:Error;
+    detail:string;
+}
+
+table Activate {
+}
+
+table UpdateAbort {
+}
+
+table GetBootInfo {
+}
+
+// The union order is part of the wire format. Append new members only.
+union Body {
+    Hello,
+    HelloReply,
+    Ping,
+    Pong,
+    SetBaud,
+    Ack,
+    Nak,
+    Log,
+    Progress,
+    Reset,
+    GetBootInfo,
+    BootInfo,
+    UpdateBegin,
+    UpdateData,
+    UpdateEnd,
+    UpdateResult,
+    Activate,
+    UpdateAbort,
+    SetLed,
+    SetLedAll,
+    ClearFault,
+    EnterBootloader,
+    GetStatus,
+    Status,
+    ButtonEvent
+}
+
+table Message {
+    body:Body;
+}
+
+root_type Message;

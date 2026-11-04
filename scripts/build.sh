@@ -6,7 +6,8 @@
 # Usage:   scripts/build.sh            configure (if needed) + build
 #          scripts/build.sh clean      rm -rf build, then configure + build
 #
-# Outputs: build/app.elf, build/app.bin, build/app.hex, build/app.map
+# Outputs: build/app.elf, build/app.bin, build/app.hex, build/app.map,
+#          build/demo.* and build/demo.img for the bootloader
 #
 
 set -euo pipefail
