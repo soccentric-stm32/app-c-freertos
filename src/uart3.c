@@ -192,6 +192,20 @@ bool app_uart3_rx_running(void)
            (USART3->CR1 & USART_CR1_RE) != 0U;
 }
 
+bool app_uart3_rx_restart(void)
+{
+    if (app_uart3_rx_running()) {
+        return true;
+    }
+    /* A DMA transfer error or an overrun can leave the HAL receive state
+     * and both DMA streams idle.  Clear the flags, abort what is left and
+     * arm the ring again so HWLINK comes back without a reset. */
+    USART3->ICR = USART_ICR_ORECF | USART_ICR_FECF | USART_ICR_NCF |
+                  USART_ICR_PECF | USART_ICR_IDLECF;
+    (void)HAL_UART_AbortReceive(&huart3);
+    return uart_start_receiver();
+}
+
 bool app_uart3_send(const uint8_t *data, uint16_t len, uint32_t timeout_ms)
 {
     if (len == 0U || data == NULL) {

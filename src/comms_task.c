@@ -634,6 +634,12 @@ static void comms_task(void *arg)
 
         poll_receive();
 
+        /* COM-002/HLT-001: a receive error or DMA abort must not kill the
+         * link.  Re-arm the receiver when it is no longer running. */
+        if (!app_uart3_rx_running()) {
+            (void)app_uart3_rx_restart();
+        }
+
         uint32_t now = xTaskGetTickCount();
         if (baud_revert_pending &&
             (now - baud_last_valid) >= COMMS_BAUD_REVERT_MS) {

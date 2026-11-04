@@ -31,6 +31,10 @@ uint32_t app_uart3_rx_read(uint8_t *dst, uint32_t max_len);
 /* True while the DMA receiver is armed (HLT-001). */
 bool app_uart3_rx_running(void);
 
+/* Re-arm the circular DMA receiver after a receive error or a DMA abort.
+ * Safe to call from the Comms task; no-op when the receiver is running. */
+bool app_uart3_rx_restart(void);
+
 /* Transmit one frame and wait for the last stop bit.  Safe to call from one
  * task only; it does not block any other task. */
 bool app_uart3_send(const uint8_t *data, uint16_t len, uint32_t timeout_ms);
