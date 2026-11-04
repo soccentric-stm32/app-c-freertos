@@ -24,6 +24,7 @@
 #include "boot_contract.h"
 #include "crc32.h"
 #include "flatcc/flatcc_builder.h"
+#include "identity.h"
 #include "hwlink.h"
 #include "hwlink_builder.h"
 #include "hwlink_verifier.h"
@@ -220,8 +221,10 @@ static bool send_hello_reply(uint16_t seq)
         flatbuffers_string_create_str(&builder, APP_GIT_COMMIT);
     flatbuffers_string_ref_t build =
         flatbuffers_string_create_str(&builder, APP_BUILD_DATE);
+    char identity_detail[192];
+    (void)app_identity_detail(identity_detail, sizeof(identity_detail));
     flatbuffers_string_ref_t detail =
-        flatbuffers_string_create_str(&builder, "FreeRTOS DEMO");
+        flatbuffers_string_create_str(&builder, identity_detail);
 
     hwlink_HelloReply_ref_t reply = hwlink_HelloReply_create(
         &builder, hwlink_Role_DEMO, name, version, commit, build, detail,

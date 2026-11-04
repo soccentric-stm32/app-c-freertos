@@ -147,6 +147,7 @@ set(PROJECT_SOURCES
     src/hal_timebase.c
     src/cache_mpu.c
     src/crc32.c
+    src/identity.c
     src/hwlink.c
     src/flatcc_port.c
     src/app_error.c
