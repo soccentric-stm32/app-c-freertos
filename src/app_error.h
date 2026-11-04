@@ -21,6 +21,12 @@
 extern volatile uint32_t app_error_flags;
 
 void app_error_set(uint32_t flags);
+
+/* Clear the whole latch (used at start-up and by tests). */
 void app_error_clear(void);
+
+/* Clear FAULT and WATCHDOG but keep HEALTH while health is still failed
+ * (LED-005): ClearFault must not hide a pending-slot health failure. */
+void app_error_clear_fault(void);
 
 #endif /* APP_ERROR_H */

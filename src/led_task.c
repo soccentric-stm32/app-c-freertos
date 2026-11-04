@@ -306,7 +306,8 @@ static void handle_message(led_cfg_t cfg[3], const led_msg_t *msg,
         break;
 
     case LED_MSG_CLEAR_ERROR:
-        *error_flags = 0U;
+        /* LED-005: keep the health bit while health is still failed. */
+        *error_flags &= ~(APP_ERROR_FAULT | APP_ERROR_WATCHDOG);
         break;
 
     case LED_MSG_HEALTH_FAILED:

@@ -70,7 +70,7 @@
 
 /* --- debug (DRT-002) ----------------------------------------------------- */
 extern void app_fault_assert(const char *file, int line);
-#define configASSERT(x) if ((x) == 0) { app_fault_assert(__FILE__, __LINE__); }
+#define configASSERT(x) do { if ((x) == 0) { app_fault_assert(__FILE__, __LINE__); } } while (0)
 
 /* --- port mapping (CM7 GCC port, DRT-001) -------------------------------- */
 #define vPortSVCHandler    SVC_Handler

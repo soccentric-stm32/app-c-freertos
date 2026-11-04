@@ -45,8 +45,16 @@ static void fault_copy(char *dst, uint32_t dst_size, const char *src)
         return;
     }
     if (src != NULL) {
-        while ((i + 1U) < dst_size && src[i] != '\0') {
-            dst[i] = src[i];
+        /* __FILE__ may be an absolute build path.  Keep the basename so the
+         * 31-character field identifies the file (DGEN-004). */
+        const char *base = src;
+        for (const char *p = src; *p != '\0'; p++) {
+            if (*p == '/' || *p == '\\') {
+                base = p + 1;
+            }
+        }
+        while ((i + 1U) < dst_size && base[i] != '\0') {
+            dst[i] = base[i];
             i++;
         }
     }

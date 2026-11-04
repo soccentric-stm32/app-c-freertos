@@ -463,7 +463,7 @@ static void handle_payload(uint16_t seq, const uint8_t *payload, size_t len)
 
     case hwlink_Body_ClearFault:
         app_fault_clear();
-        app_error_clear();
+        app_error_clear_fault();
         (void)led_post_clear_error();
         (void)send_ack(seq);
         break;

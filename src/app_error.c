@@ -27,3 +27,11 @@ void app_error_clear(void)
     app_error_flags = 0U;
     __set_PRIMASK(primask);
 }
+
+void app_error_clear_fault(void)
+{
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    app_error_flags &= APP_ERROR_HEALTH;
+    __set_PRIMASK(primask);
+}

@@ -18,11 +18,9 @@ app_handover_t g_handover;
 
 void app_handover_read(void)
 {
-    /* Writing the stay magic needs DBP; do it once before the scheduler. */
-    __HAL_RCC_PWR_CLK_ENABLE();
-    __HAL_RCC_RTC_CLK_ENABLE();
-    HAL_PWR_EnableBkUpAccess();
-
+    /* Reading backup registers does not need DBP; only the BKP1R write
+     * below does.  Keeping DBP enabled for the whole run would let a stray
+     * write corrupt BOOT's trial counter or the RTC. */
     uint32_t raw = RTC->BKP2R;
 
     g_handover.raw = raw;
