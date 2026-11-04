@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 #define HWLINK_PROTOCOL_MAJOR     1U
-#define HWLINK_PROTOCOL_MINOR     0U
+#define HWLINK_PROTOCOL_MINOR     1U
 #define HWLINK_MAX_FRAME          2048U
 #define HWLINK_MAX_ENCODED        (HWLINK_MAX_FRAME + (HWLINK_MAX_FRAME / 254U) + 2U)
 
