@@ -140,17 +140,23 @@ static bool send_payload(const uint8_t *payload, size_t payload_len,
         return false;
     }
 
-    if (store && raw_len <= sizeof(last_response)) {
-        memcpy(last_response, raw_tx, raw_len);
-        last_response_len = raw_len;
-    }
-
     if (!hwlink_cobs_encode(raw_tx, raw_len, tx_frame, sizeof(tx_frame),
                             &encoded_len)) {
         return false;
     }
-    return app_uart3_send(tx_frame, (uint16_t)encoded_len,
-                          COMMS_TX_TIMEOUT_MS);
+    if (!app_uart3_send(tx_frame, (uint16_t)encoded_len,
+                        COMMS_TX_TIMEOUT_MS)) {
+        return false;
+    }
+
+    /* Cache only after the frame is on the wire.  Caching first meant a
+     * failed SetLed/Reset/EnterBootloader Ack was replayed to the host's
+     * retry without running the request. */
+    if (store && raw_len <= sizeof(last_response)) {
+        memcpy(last_response, raw_tx, raw_len);
+        last_response_len = raw_len;
+    }
+    return true;
 }
 
 static bool send_body(hwlink_Body_union_ref_t body, uint16_t seq,
