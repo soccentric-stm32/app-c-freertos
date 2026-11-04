@@ -534,6 +534,11 @@ static void handle_raw(const uint8_t *raw, size_t raw_len)
     }
 
     baud_last_valid = xTaskGetTickCount();
+    /* COM-001: the 5 s revert is a safety net for a new rate that does not
+     * work.  The first valid frame at that rate confirms it, so stop
+     * reverting; otherwise an idle link (no traffic for 5 s) would drop the
+     * board back to 115200 while the host stays at 921600. */
+    baud_revert_pending = false;
     if ((flags & (HWLINK_FLAG_RESPONSE | HWLINK_FLAG_EVENT)) != 0U) {
         return;
     }
