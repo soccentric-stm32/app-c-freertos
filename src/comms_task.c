@@ -549,6 +549,17 @@ static void handle_raw(const uint8_t *raw, size_t raw_len)
         return;
     }
 
+    /* A new host session starts at sequence 1.  Never answer its Hello
+     * from the replay cache, or role detection fails until a reset. */
+    if (hwlink_Message_verify_as_root(rx_payload, payload_len) ==
+        flatcc_verify_ok) {
+        hwlink_Message_table_t message = hwlink_Message_as_root(rx_payload);
+        if (hwlink_Message_body_union(message).type == hwlink_Body_Hello) {
+            last_request_valid = false;
+            last_response_len = 0U;
+        }
+    }
+
     if (last_request_valid && seq == last_request_seq &&
         last_response_len > 0U) {
         size_t encoded_len = 0U;
