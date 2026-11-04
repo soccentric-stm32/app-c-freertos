@@ -114,6 +114,23 @@ see also SRS-BOOT-F767 Appendix B. The running bank is mapped at
 | [validation-gui](https://github.com/soccentric-stm32/validation-gui) | PySide6 GUI: runs HWVAL tests, updates and flashes firmware |
 | [factory-station](https://github.com/soccentric-stm32/factory-station) | HWVAL Factory: end-of-line test and provisioning station |
 
+## CI and releases
+
+The [Jenkinsfile](Jenkinsfile) runs the build and checks, then **Package**
+builds `dist/app-c-freertos-<version>.tar.gz` with the outputs, a `manifest.json`
+(version, commit, build) and `SHA256SUMS`, and archives `dist/`. For a tag
+`v<version>`, **Release** publishes `dist/` as a GitHub release
+(`ci/github_release.py`, Jenkins credential `github-release-token`); the tag
+must match the version the build reports (`ci/version.sh`), and 0.x versions
+are marked as pre-releases.
+
+To release, bump the version (`APP_VERSION` in `CMakeLists.txt`), push it, then push a matching tag:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
 ## License
 
 [MIT](LICENSE) © 2026 Sandesh Ghimire. Use it as a starting point for your own

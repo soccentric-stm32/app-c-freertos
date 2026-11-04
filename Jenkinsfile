@@ -1,6 +1,13 @@
 // Jenkinsfile - multi-stage CI for the STM32 C/C++ (FreeRTOS) application.
 //
-//   Checkout -> Toolchain -> Build -> Static analysis -> Boot contract -> Image -> Publish
+//   Checkout -> Toolchain -> Build -> Static analysis -> Boot contract -> Image
+//   -> Package -> Release (tags) -> Archive
+//
+// Package builds dist/<repo>-<version>.tar.gz (outputs, manifest.json,
+// SHA256SUMS) on every run.  Release runs only for a tag v<version> and
+// publishes dist/ as a GitHub release with the Jenkins secret-text credential
+// github-release-token.  To release: bump the version, push, then push the
+// tag (git tag v0.2.0 && git push origin v0.2.0).
 //
 // Every build command goes through scripts/docker-dev.sh (DCON-001), so a
 // Jenkins agent only needs git and Docker. The stm32-dev image is built from
@@ -147,15 +154,30 @@ PY
             }
         }
 
-        stage('Publish') {
+        stage('Package') {
             steps {
                 sh '''
-                    sha256sum build/app.elf build/app.bin build/app.hex > build/SHA256SUMS
-                    sha256sum build/demo.img build/app.map >> build/SHA256SUMS
-                    cat build/SHA256SUMS
+                    python3 ci/package.py --name app-c-freertos --version "$(ci/version.sh)" \\
+                        build/app.elf build/app.bin build/app.hex build/app.map build/demo.img \\
+                        README.md LICENSE
                 '''
-                archiveArtifacts artifacts: 'build/app.elf,build/app.bin,build/app.hex,build/demo.img,build/app.map,build/SHA256SUMS',
-                                 fingerprint: true
+            }
+        }
+
+        stage('Release') {
+            // Only for a tag build (Multibranch job with tag discovery).  The
+            // tag must be v<version>; ci/github_release.py checks it.
+            when { buildingTag() }
+            steps {
+                withCredentials([string(credentialsId: 'github-release-token', variable: 'GITHUB_TOKEN')]) {
+                    sh 'python3 ci/github_release.py --tag "${TAG_NAME}" --version "$(ci/version.sh)" dist/*'
+                }
+            }
+        }
+
+        stage('Archive') {
+            steps {
+                archiveArtifacts artifacts: 'dist/*', fingerprint: true
             }
         }
     }
