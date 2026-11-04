@@ -279,10 +279,9 @@ void USART3_IRQHandler(void)
 
     /* Receive errors are cleared here instead of through the HAL, because
      * HAL_UART_IRQHandler() aborts the circular DMA receiver on an overrun.
-     * Reading ISR and then RDR clears the error flags; ICR is explicit. */
+     * Clear through ICR only: reading RDR while the DMA receiver is active
+     * would steal a valid byte from the ring (RM0410 30.6.9). */
     if ((sr & (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE | USART_ISR_PE)) != 0U) {
-        volatile uint32_t dr = USART3->RDR;
-        (void)dr;
         USART3->ICR = USART_ICR_ORECF | USART_ICR_FECF |
                       USART_ICR_NCF | USART_ICR_PECF;
         wake = true;
