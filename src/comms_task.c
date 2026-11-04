@@ -282,22 +282,14 @@ static bool send_status(uint16_t seq)
             g_app_fault.line);
     }
 
-    flatbuffers_string_ref_t name =
-        flatbuffers_string_create_str(&builder, firmware_name());
+    /* COM-003: keep Status inside 50 ms of line time at 115200 even with a
+     * fault.  Identity is already in HelloReply; reset_cause_text is derived
+     * from reset_cause by the host.  Only "version" stays here (SRS §8.1). */
     flatbuffers_string_ref_t version =
         flatbuffers_string_create_str(&builder, APP_VERSION_STR);
-    flatbuffers_string_ref_t commit =
-        flatbuffers_string_create_str(&builder, APP_GIT_COMMIT);
-    flatbuffers_string_ref_t build =
-        flatbuffers_string_create_str(&builder, APP_BUILD_DATE);
-    flatbuffers_string_ref_t reset_text =
-        flatbuffers_string_create_str(&builder, app_reset_cause_text);
 
     hwlink_Status_start(&builder);
-    hwlink_Status_firmware_name_add(&builder, name);
     hwlink_Status_version_add(&builder, version);
-    hwlink_Status_commit_add(&builder, commit);
-    hwlink_Status_build_time_add(&builder, build);
     hwlink_Status_uid_add(&builder, device_uid());
     hwlink_Status_uptime_ms_add(&builder, (uint64_t)HAL_GetTick());
     hwlink_Status_slot_add(&builder, (hwlink_Slot_enum_t)g_handover.slot);
@@ -305,7 +297,6 @@ static bool send_status(uint16_t seq)
     hwlink_Status_trial_count_add(&builder, g_handover.trial_count);
     hwlink_Status_health_add(&builder, (hwlink_HealthState_enum_t)health_state_get());
     hwlink_Status_reset_cause_add(&builder, app_reset_cause_flags);
-    hwlink_Status_reset_cause_text_add(&builder, reset_text);
     if (fault != 0) {
         hwlink_Status_fault_add(&builder, fault);
     }
