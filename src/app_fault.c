@@ -209,9 +209,20 @@ void app_fault_fatal(app_fault_reason_t reason, const char *task,
 __attribute__((used, noreturn))
 void app_fault_handler_c(uint32_t *frame, uint32_t reason)
 {
+    /* A stack-overflow fault can leave MSP/PSP outside RAM; dereferencing
+     * such a frame double-faults into lockup.  Only read the stacked PC/LR
+     * when the whole exception frame lies in internal RAM. */
+    uint32_t pc = 0U, lr = 0U, psr = 0U;
+    uintptr_t base = (uintptr_t)frame;
+    if (base >= 0x20000000UL && base <= 0x20080000UL &&
+        (base & 3U) == 0U && (base + (8U * 4U)) <= 0x20080000UL) {
+        pc  = frame[6];
+        lr  = frame[5];
+        psr = frame[7];
+    }
     app_fault_save((app_fault_reason_t)reason,
                    SCB->CFSR, SCB->HFSR, SCB->MMFAR, SCB->BFAR,
-                   frame[6], frame[5], frame[7], NULL, NULL, 0UL);
+                   pc, lr, psr, NULL, NULL, 0UL);
     app_fault_show_and_reset();
 }
 
