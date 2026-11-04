@@ -150,15 +150,24 @@ static void fault_delay_ms(uint32_t ms)
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
+    /* If the trace unit is locked, CYCCNT never advances; detect that once
+     * instead of spinning for cycles*4 iterations (the IWDG would fire
+     * first). */
+    uint32_t probe = DWT->CYCCNT;
+    for (volatile uint32_t i = 0U; i < 100U; i++) {
+        __NOP();
+    }
+    if (DWT->CYCCNT == probe) {
+        for (volatile uint32_t i = 0U; i < (ms * 20000U); i++) {
+            __NOP();
+        }
+        return;
+    }
+
     uint32_t cycles = (SystemCoreClock / 1000U) * ms;
     uint32_t start = DWT->CYCCNT;
-    uint32_t guard = 0U;
-
     while ((DWT->CYCCNT - start) < cycles) {
         __NOP();
-        if (++guard > (cycles * 4U + 100000U)) {
-            break;
-        }
     }
 }
 
