@@ -27,6 +27,8 @@ static DMA_HandleTypeDef hdma_usart3_tx;
 static uint8_t uart_rx_ring[UART_RX_RING_SIZE]
     __attribute__((section(".dma_buffer"), aligned(32)));
 static uint32_t uart_rx_read;
+static uint32_t uart_rx_consumed;   /* total bytes consumed since arming */
+static volatile uint32_t uart_rx_wraps; /* full-ring DMA completions */
 static uint32_t uart_baud = APP_UART_DEFAULT_BAUD;
 static volatile TaskHandle_t uart_tx_task;
 
@@ -103,6 +105,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 static bool uart_start_receiver(void)
 {
     uart_rx_read = 0U;
+    uart_rx_consumed = 0U;
+    uart_rx_wraps = 0U;
     if (HAL_UART_Receive_DMA(&huart3, uart_rx_ring, UART_RX_RING_SIZE) !=
         HAL_OK) {
         return false;
@@ -168,20 +172,29 @@ uint32_t app_uart3_rx_read(uint8_t *dst, uint32_t max_len)
 {
     uint32_t head = UART_RX_RING_SIZE - __HAL_DMA_GET_COUNTER(&hdma_usart3_rx);
     head %= UART_RX_RING_SIZE;
+    uint32_t produced = (uart_rx_wraps * UART_RX_RING_SIZE) + head;
 
-    if (head == uart_rx_read || max_len == 0U) {
+    if (produced == uart_rx_consumed || max_len == 0U) {
+        return 0U;
+    }
+    if ((produced - uart_rx_consumed) > UART_RX_RING_SIZE) {
+        /* The DMA lapped the reader: bytes were overwritten.  Resync at the
+         * write position instead of returning out-of-order data. */
+        uart_rx_read = head;
+        uart_rx_consumed = produced;
         return 0U;
     }
 
-    uint32_t count = (head > uart_rx_read) ? (head - uart_rx_read)
-                                           : (UART_RX_RING_SIZE - uart_rx_read);
+    uint32_t count = produced - uart_rx_consumed;
     if (count > max_len) {
         count = max_len;
+        produced = uart_rx_consumed + count;
     }
     for (uint32_t i = 0U; i < count; i++) {
         dst[i] = uart_rx_ring[(uart_rx_read + i) % UART_RX_RING_SIZE];
     }
     uart_rx_read = (uart_rx_read + count) % UART_RX_RING_SIZE;
+    uart_rx_consumed = produced;
     return count;
 }
 
@@ -243,6 +256,7 @@ bool app_uart3_send(const uint8_t *data, uint16_t len, uint32_t timeout_ms)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART3) {
+        uart_rx_wraps++;
         comms_post_rx_from_isr();
     }
 }
