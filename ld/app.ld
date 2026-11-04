@@ -21,7 +21,9 @@ MEMORY
 {
     /* Slot: bank sectors 3-11, 976 KB (DBT-001). */
     FLASH   (rx)  : ORIGIN = 0x0800C000, LENGTH = 976K
-    DTCMRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
+    /* Top 1 KB of DTCM is the reserved no-init window (APP_NOINIT_*). */
+    DTCMRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 127K
+    NOINIT  (rw)  : ORIGIN = 0x2001FC00, LENGTH =   1K
     SRAM1   (rwx) : ORIGIN = 0x20020000, LENGTH = 368K
     SRAM2   (rwx) : ORIGIN = 0x2007C000, LENGTH =  16K
 }
@@ -116,7 +118,7 @@ SECTIONS
         KEEP(*(.noinit .noinit.*))
         . = ALIGN(4);
         _enoinit = .;
-    } > DTCMRAM
+    } > NOINIT
 
     /* DMA buffers are in SRAM2 and covered by the non-cacheable MPU region
      * set up in cache_mpu.c (COM-002). */
@@ -146,5 +148,11 @@ ASSERT(ORIGIN(FLASH) == 0x0800C000,
        "DBT-001: the vector table must be at the slot start 0x0800C000")
 ASSERT(__app_image_end <= 0x08100000,
        "DBT-001: image exceeds the 976 KB bootloader slot")
+ASSERT(ORIGIN(NOINIT) == 0x2001FC00 && LENGTH(NOINIT) == 1K,
+       "A-9: .noinit window must match APP_NOINIT_ADDR/SIZE")
+ASSERT(ORIGIN(NOINIT) >= 0x2000F000,
+       "A-9: .noinit overlaps BOOT's 60 KB DTCM budget")
+ASSERT(_enoinit <= ORIGIN(NOINIT) + LENGTH(NOINIT),
+       "A-9: .noinit exceeds the reserved window")
 ASSERT(SIZEOF(.dma_buffer) <= LENGTH(SRAM2),
        "COM-002: DMA buffers do not fit in SRAM2")

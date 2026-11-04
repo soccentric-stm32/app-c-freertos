@@ -72,6 +72,17 @@
 /* RTC_BKP1R "stay in BOOT" request (ENT-002). */
 #define APP_STAY_IN_BOOT_MAGIC    0x59415453UL  /* bytes "STAY" */
 
+/* Reserved no-init window (DGEN-004, A-9).  BOOT uses DTCM
+ * 0x20000000..0x2000EFFF (its 60 KB budget, including its stack), so an
+ * application fault record placed after .bss could be cleared by BOOT.
+ * The top 1 KB of DTCM is reserved instead: BOOT never writes it, the
+ * application links .noinit there and its main stack starts just below
+ * it, so the record survives every reset and cannot be overwritten by
+ * the stack.  The linker script and app_fault.c assert these values. */
+#define APP_NOINIT_ADDR           0x2001FC00UL
+#define APP_NOINIT_SIZE           0x00000400UL
+#define APP_NOINIT_END            0x20020000UL
+
 /* Slot identifiers shared with Status. */
 #define APP_SLOT_UNKNOWN          0U
 #define APP_SLOT_A                1U

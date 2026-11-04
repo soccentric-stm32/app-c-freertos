@@ -15,9 +15,15 @@
 #include "stm32f7xx_hal.h"
 #include "app_board.h"
 #include "app_fault.h"
+#include "boot_contract.h"
 
 app_fault_record_t g_app_fault __attribute__((section(".noinit")));
 static uint32_t app_boot_id __attribute__((section(".noinit")));
+
+/* A-9: the record and the boot id must fit the window that BOOT leaves
+ * alone.  The linker script places .noinit at APP_NOINIT_ADDR. */
+_Static_assert(sizeof(app_fault_record_t) + sizeof(uint32_t) <= APP_NOINIT_SIZE,
+               "A-9: fault record exceeds the reserved no-init window");
 
 static const char *const fault_reason_names[] = {
     "none",
