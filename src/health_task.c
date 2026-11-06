@@ -19,6 +19,7 @@
 #include "app_error.h"
 #include "app_fault.h"
 #include "boot_contract.h"
+#include "app_log.h"
 #include "flash_confirm.h"
 #include "handover.h"
 #include "health_task.h"
@@ -130,6 +131,9 @@ static void health_task(void *arg)
 
     bool pending = g_handover.present && g_handover.trial == 2U;
     health_state = pending ? HEALTH_STATE_RUNNING : HEALTH_STATE_NOT_REQUIRED;
+    if (pending) {
+        LOG_I("health: on trial, check in %u ms", (unsigned)HEALTH_CHECK_AT_MS);
+    }
 
     for (;;) {
         uint32_t bits = 0U;
@@ -149,11 +153,15 @@ static void health_task(void *arg)
                      * single byte store, so Comms never sees a torn value. */
                     g_handover.trial = 1U;
                     health_check_pass();
+                    LOG_I("health: passed, CONFIRMED written");
                 } else {
                     health_check_fail();
+                    LOG_E("health: CONFIRMED record write failed");
                 }
             } else if ((now - start_tick) >= HEALTH_STOP_KICK_MS) {
                 health_check_fail();
+                LOG_E("health: conditions not met, stopping the watchdog "
+                      "kick (trial fails)");
             }
         }
 

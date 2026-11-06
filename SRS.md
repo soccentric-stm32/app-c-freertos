@@ -269,7 +269,7 @@ demo message set below.
 |---|---|---|
 | DSAFE-001 | DEMO shall never unlock or write option bytes; code that touches `OPTKEYR` shall not be compiled in. | I |
 | DSAFE-002 | The flash helper used by DEMO shall accept only the `CONFIRMED` record address of the running slot and shall reject every other address. | I, T |
-| DSAFE-003 | DEMO shall drive only PB0, PB7, PB14 (LEDs), read PC13 (B1) and use PD8/PD9 (USART3). | I |
+| DSAFE-003 | DEMO shall drive only PB0, PB7, PB14 (LEDs), read PC13 (B1), use PD8/PD9 (USART3) and PG14 (USART6 debug TX, DLOG-001). | I |
 
 ---
 
@@ -282,6 +282,18 @@ demo message set below.
 | DNFR-003 | **Reliability:** DEMO shall run 24 h with the GUI polling `GetStatus` every 100 ms without a reset or a missed reply. | T |
 | DNFR-004 | **Code quality:** `-Wall -Wextra -Werror` and cppcheck with no high-severity findings. | I |
 | DNFR-005 | **Template:** a README shall explain how to make a new application from DEMO (rename, add tasks, keep the bootloader contract). | I |
+
+### Debug output (USART6)
+
+USART3 carries HWLINK only.  Debug lines go to USART6 TX on PG14 (Arduino
+D1), 115200 8N1, in the format BOOT uses: `[<ms>] <TAG> <E|W|I|D> <text>` (milliseconds since reset, right-aligned to 7 digits, CR LF), tag `C-FRT`.
+
+| ID | Requirement | Method |
+|---|---|---|
+| DLOG-001 | DEMO shall log start (version, commit, slot, trial state, reset cause), the last fault, the health verdict, button presses and HWLINK-requested resets. | D |
+| DLOG-002 | `app_log()` shall never block: it formats into a stack buffer and copies the line into a 1 KB ring drained by the USART6 TXE interrupt, which makes no FreeRTOS call. It shall be safe from tasks, interrupts and before the scheduler starts, and shall not allocate. | I |
+| DLOG-003 | A line that does not fit in the ring shall be dropped and counted, never block the caller. | I |
+| DLOG-004 | Before a deliberate reset DEMO shall flush the ring by polling, bounded in time, so the last lines are not lost. | I |
 
 ---
 

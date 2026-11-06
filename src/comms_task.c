@@ -15,6 +15,7 @@
  */
 
 #include <string.h>
+#include "app_log.h"
 #include "stm32f7xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -489,6 +490,8 @@ static void handle_payload(uint16_t seq, const uint8_t *payload, size_t len)
 
     case hwlink_Body_EnterBootloader:
         if (send_ack(seq)) {
+            LOG_I("HWLINK: EnterBootloader, resetting into BOOT");
+            app_log_flush(20U);
             app_handover_request_bootloader();
             NVIC_SystemReset();
         }
@@ -496,6 +499,8 @@ static void handle_payload(uint16_t seq, const uint8_t *payload, size_t len)
 
     case hwlink_Body_Reset:
         if (send_ack(seq)) {
+            LOG_I("HWLINK: Reset");
+            app_log_flush(20U);
             NVIC_SystemReset();
         }
         break;

@@ -12,6 +12,7 @@
  * owns the patterns; this task only reports the press through its queue.
  */
 
+#include "app_log.h"
 #include "stm32f7xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -20,7 +21,7 @@
 #include "led_task.h"
 #include "button_task.h"
 
-#define BUTTON_TASK_STACK_WORDS  256U
+#define BUTTON_TASK_STACK_WORDS  384U   /* room for app_log() formatting */
 #define BUTTON_TASK_PRIORITY     (tskIDLE_PRIORITY + 3U)
 #define BUTTON_DEBOUNCE_MS       30U
 #define BUTTON_SHORT_MAX_MS      1000U
@@ -100,6 +101,7 @@ static void button_task(void *arg)
                 uint32_t duration = now - press_start;
                 if (pressed && !long_sent) {
                     if (duration < BUTTON_SHORT_MAX_MS) {
+                        LOG_I("button: short press, next LED pattern");
                         (void)led_post_button(1U);
                     } else if (duration >= BUTTON_LONG_MS) {
                         (void)led_post_button(2U);
@@ -112,6 +114,7 @@ static void button_task(void *arg)
         if (pressed && !long_sent &&
             (now - press_start) >= BUTTON_LONG_MS) {
             long_sent = true;
+            LOG_I("button: long press, default LED patterns");
             (void)led_post_button(2U);
         }
 

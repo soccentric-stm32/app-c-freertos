@@ -152,6 +152,7 @@ set(PROJECT_SOURCES
     src/flatcc_port.c
     src/app_error.c
     src/app_fault.c
+    src/app_log.c
     src/reset_cause.c
     src/iwdg.c
     src/handover.c
