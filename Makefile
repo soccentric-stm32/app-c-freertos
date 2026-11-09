@@ -23,6 +23,7 @@
 #   make lint-strict    clang-tidy, failing on any finding
 #   make probe          detect the ST-LINK and the target chip
 #   make size           show the firmware size
+#   make docs           build the Doxygen API documentation
 #   make image          build the stm32-dev Docker image
 #   make help           show this help
 #
@@ -49,7 +50,7 @@ PYTHON     ?= python3
 .DEFAULT_GOAL := build
 
 .PHONY: all build configure clean rebuild lint lint-strict flash erase-all \
-        reset debug gdbserver serial probe size image help
+        reset debug gdbserver serial probe size docs image help
 
 all: build
 
@@ -96,6 +97,12 @@ erase-all:
 size:
 	@test -f $(ELF) || { echo "error: $(ELF) not found, run make build"; exit 1; }
 	$(DEV) run arm-none-eabi-size /work/$(ELF)
+
+# Doxygen is a host tool (scripts/install-tools.sh or the stm32-dev image).
+docs:
+	@command -v doxygen >/dev/null 2>&1 || { echo "error: doxygen not installed"; exit 1; }
+	doxygen Doxyfile
+	@echo "docs: docs/doxygen/html/index.html"
 
 image:
 	$(DEV) build

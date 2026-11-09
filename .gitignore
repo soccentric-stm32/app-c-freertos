@@ -113,6 +113,9 @@ Desktop.ini
 $RECYCLE.BIN/
 .Trash-*/
 
+# --- Generated documentation ---------------------------------
+docs/doxygen/
+
 # --- Temporary / local files --------------------------------
 *.bak
 *.tmp
