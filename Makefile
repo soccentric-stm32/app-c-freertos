@@ -21,6 +21,7 @@
 #   make serial         serial console on the ST-LINK VCP (115200 8N1)
 #   make lint           clang-tidy static analysis
 #   make lint-strict    clang-tidy, failing on any finding
+#   make format         format src/ and board/ with clang-format
 #   make probe          detect the ST-LINK and the target chip
 #   make size           show the firmware size
 #   make docs           build the Doxygen API documentation
@@ -33,6 +34,7 @@
 #   BOOTCTL      bootctl.py used by make flash
 #                (default ../bootloader/tools/bootctl.py)
 #   PORT         serial port for make flash (default: bootctl auto-detect)
+#   CLANG_FORMAT clang-format binary used by make format (clang-format)
 #
 
 BUILD_TYPE ?= Release
@@ -46,11 +48,16 @@ OPENOCD    := openocd -f board/st_nucleo_f7.cfg
 BOOTCTL    ?= ../bootloader/tools/bootctl.py
 PORT       ?=
 PYTHON     ?= python3
+CLANG_FORMAT ?= clang-format
+
+# Hand-written sources only; generated headers and third_party are not
+# formatted here.
+FORMAT_SOURCES := $(wildcard src/*.c src/*.h board/*.c board/*.h)
 
 .DEFAULT_GOAL := build
 
-.PHONY: all build configure clean rebuild lint lint-strict flash erase-all \
-        reset debug gdbserver serial probe size docs image help
+.PHONY: all build configure clean rebuild lint lint-strict format flash \
+        erase-all reset debug gdbserver serial probe size docs image help
 
 all: build
 
@@ -81,6 +88,13 @@ lint: configure
 lint-strict:
 	$(DEV) run cmake -S /work -B /work/$(BUILD_DIR) -G Ninja -DAPP_LINT_STRICT=ON
 	$(DEV) run cmake --build /work/$(BUILD_DIR) --target clang-tidy
+
+# clang-format is a host tool (scripts/install-tools.sh), like doxygen.
+format:
+	@command -v $(CLANG_FORMAT) >/dev/null 2>&1 || { \
+		echo "error: clang-format not installed"; exit 1; }
+	$(CLANG_FORMAT) -i $(FORMAT_SOURCES)
+	@echo "format: $(FORMAT_SOURCES)"
 
 # A-6: never program the raw ELF into a slot. BOOT only starts an image
 # that has its 256-byte header, metadata and records, which bootctl writes.

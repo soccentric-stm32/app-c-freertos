@@ -10,6 +10,7 @@
 #   - arm-none-eabi GCC, binutils and newlib (cross compiler + C library)
 #   - gdb-multiarch (debugger for Cortex-M)
 #   - cmake, ninja, make (build system)
+#   - clang-format (source formatting for make format)
 #   - openocd, stlink-tools (flashing and on-chip debugging)
 #   - picocom (serial console for the ST-LINK virtual COM port)
 #
@@ -32,6 +33,7 @@ PACKAGES=(
     cmake
     ninja-build
     make
+    clang-format
     openocd
     stlink-tools
     picocom
