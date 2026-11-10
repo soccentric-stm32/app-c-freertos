@@ -31,7 +31,15 @@
  *          Only the most recent reply is kept; a new @c Hello clears the cache
  *          and requests with sequence number 0 are never cached.
  *
- *          All buffers, the flatcc builder and the event queue are static, so
+ *          **Queues (DRT-011).**  Two static FreeRTOS queues are owned here.
+ *          The RX-hint queue only carries @c COMMS_EVT_RX hints from the UART
+ *          ISR; ButtonEvents travel on a separate, shallow queue so that a
+ *          burst of RX hints can never make the LED task wait (BTN-004,
+ *          LED-006).  Buttons are debounced and rare, so the button queue is
+ *          small and a full one drops the event instead of stalling the
+ *          producer.
+ *
+ *          All buffers, the flatcc builder and both event queues are static, so
  *          the task allocates nothing after start-up (DRT-004).  A stopped
  *          receiver is re-armed instead of being treated as fatal, and the task
  *          checks in with the health task every 500 ms (COM-002, HLT-001).
@@ -43,7 +51,7 @@
  * @author  Sandesh Ghimire <sandesh@soccentric.com>
  * @date    2026-11-03
  * @target  STM32F767ZIT6
- * @srs     COM-001..COM-007, BTN-004, section 8
+ * @srs     COM-001..COM-007, BTN-004, LED-006, section 8
  * @ingroup comms_task
  */
 
@@ -112,8 +120,23 @@
  *          watchdog feed is never delayed by protocol work.
  */
 #define COMMS_TASK_PRIORITY      (tskIDLE_PRIORITY + 4U)
-/** @brief Depth of the event queue, in @ref comms_event_t entries. */
+/**
+ * @brief Depth of the RX-hint queue, in @ref comms_event_t entries.
+ * @details RX hints only; ButtonEvents use @ref COMMS_BUTTON_QUEUE_LEN on a
+ *          separate queue so that they never compete with RX traffic
+ *          (BTN-004, LED-006).
+ */
 #define COMMS_EVENT_QUEUE_LEN    16U
+/**
+ * @brief Depth of the dedicated ButtonEvent queue, in @ref comms_event_t
+ *        entries.
+ * @details Buttons are debounced and rare, so four slots absorb a short burst.
+ *          The queue exists so that @ref comms_post_button_event can post with
+ *          a zero-tick timeout and never block the LED task (BTN-004,
+ *          LED-006); a full queue drops the event instead of stalling the
+ *          producer.
+ */
+#define COMMS_BUTTON_QUEUE_LEN   4U
 /**
  * @brief Maximum time the task blocks for an event, in milliseconds.
  * @details Bounds the worst-case request latency and also the 5 s baud-revert
@@ -146,8 +169,9 @@
 /**
  * @brief Kind of work item carried by a @ref comms_event_t.
  * @details The enumerators are private to this file; the only producers are
- *          @ref comms_post_rx_from_isr (from interrupt context) and
- *          @ref comms_post_button_event (from the LED task).
+ *          @ref comms_post_rx_from_isr (from interrupt context, into
+ *          @ref comms_queue) and @ref comms_post_button_event (from the LED
+ *          task, into @ref button_queue).
  */
 typedef enum {
     COMMS_EVT_RX = 0,   /**< "Bytes may be waiting in the DMA ring." */
@@ -155,7 +179,7 @@ typedef enum {
 } comms_event_type_t;
 
 /**
- * @brief One entry of the Comms task event queue.
+ * @brief One entry of the Comms task event queues.
  * @details A tagged union of the two event kinds.  @c type selects which of the
  *          remaining members are meaningful; @c press, @c pattern and @c period
  *          are unused for @c COMMS_EVT_RX and @c pattern and @c period are
@@ -186,11 +210,21 @@ typedef struct {
 } led_mirror_t;
 
 /**
- * @brief Event queue shared with the UART ISR and the LED task.
- * @details @c NULL until @ref comms_task_create succeeds; both posters test for
- *          @c NULL so they stay no-ops before start-up.
+ * @brief RX-hint queue shared with the UART ISR.
+ * @details Carries @c COMMS_EVT_RX entries only.  @c NULL until
+ *          @ref comms_task_create succeeds; @ref comms_post_rx_from_isr tests
+ *          for @c NULL so it stays a no-op before start-up.
  */
 static QueueHandle_t comms_queue;
+/**
+ * @brief Dedicated ButtonEvent queue fed by the LED task.
+ * @details Separating button events from the RX-hint queue is what keeps
+ *          @ref comms_post_button_event non-blocking: the LED task never waits
+ *          for a slot behind a burst of RX hints (BTN-004, LED-006).  @c NULL
+ *          until @ref comms_task_create succeeds; the poster tests for
+ *          @c NULL so it stays a no-op before start-up.
+ */
+static QueueHandle_t button_queue;
 /** @brief Handle of the @c Comms task; unused after creation. */
 static TaskHandle_t comms_task_handle;
 
@@ -611,10 +645,10 @@ static bool send_hello_reply(uint16_t seq)
         flatbuffers_string_create_str(&builder, identity_detail);
 
     hwlink_HelloReply_ref_t reply = hwlink_HelloReply_create(
-        &builder, hwlink_Role_DEMO, name, version, commit, build, detail,
+        &builder, hwlink_Role_DEMO, name, version, commit, build,
         device_uid(), HAL_GetDEVID(), HAL_GetREVID(), flash_mode(),
         (uint16_t)HWLINK_PROTOCOL_MAJOR, (uint16_t)HWLINK_PROTOCOL_MINOR,
-        (uint16_t)HWLINK_MAX_FRAME);
+        (uint16_t)HWLINK_MAX_FRAME, detail);
 
     return reply != 0 &&
            send_body(hwlink_Body_as_HelloReply(reply), seq,
@@ -1328,7 +1362,8 @@ static void poll_receive(void)
  *
  * @param[in] event Non-NULL queue entry of type @c COMMS_EVT_BUTTON.
  *
- * @pre Called from @ref comms_task after a successful queue receive.
+ * @pre Called from @ref comms_task after a successful receive from
+ *      @ref button_queue.
  * @post @ref led_mirror reflects the new LD1/LD2 state when the values were
  *       valid, and at most one @c ButtonEvent was transmitted.
  * @note The press value is compared against the raw number 2 rather than the
@@ -1360,10 +1395,12 @@ static void handle_button_event(const comms_event_t *event)
 /**
  * @brief The @c Comms task: receive, dispatch, supervise and check in.
  * @details Runs forever and never suspends itself.  One loop iteration:
- *          -# block up to @ref COMMS_LOOP_MS for a queue entry, then drain every
- *             entry that is already queued with a zero-time receive.  RX hints
- *             call @ref poll_receive and button events call
- *             @ref handle_button_event;
+ *          -# block up to @ref COMMS_LOOP_MS for an RX-hint queue entry, then
+ *             drain every hint that is already queued with a zero-time
+ *             receive and call @ref poll_receive for them;
+ *          -# drain @ref button_queue with zero-time receives and call
+ *             @ref handle_button_event for every entry, so a button event is
+ *             never delayed behind the RX-hint queue (BTN-004, LED-006);
  *          -# call @ref poll_receive unconditionally, so data that arrived
  *             without a hint (a lost event, a coalesced ISR post) is still
  *             picked up within one loop period;
@@ -1384,8 +1421,9 @@ static void handle_button_event(const comms_event_t *event)
  *
  * @param[in] arg Unused task argument; the task is created with @c NULL.
  *
- * @pre @ref comms_task_create has created @ref comms_queue and initialised
- *      @ref builder, and the scheduler is running.
+ * @pre @ref comms_task_create has created @ref comms_queue and
+ *      @ref button_queue and initialised @ref builder, and the scheduler is
+ *      running.
  * @post Never returns on its own.  Only a reset, requested through @c Reset,
  *       @c EnterBootloader or the Health task's watchdog, ends this task.
  * @warning The task must remain the only writer of @ref tx_frame and the only
@@ -1406,9 +1444,20 @@ static void comms_task(void *arg)
                 if (event.type == COMMS_EVT_RX) {
                     poll_receive();
                 } else if (event.type == COMMS_EVT_BUTTON) {
+                    /* Legacy entry: buttons now use button_queue, but an entry
+                     * left over from the shared queue is still handled. */
                     handle_button_event(&event);
                 }
             } while (xQueueReceive(comms_queue, &event, 0U) == pdPASS);
+        }
+
+        /* BTN-004/LED-006: button events have their own queue and are always
+         * drained with a zero-time receive, so the LED task never waits on
+         * them and they cannot be starved by RX hints. */
+        while (xQueueReceive(button_queue, &event, 0U) == pdPASS) {
+            if (event.type == COMMS_EVT_BUTTON) {
+                handle_button_event(&event);
+            }
         }
 
         poll_receive();
@@ -1435,21 +1484,24 @@ static void comms_task(void *arg)
 }
 
 /**
- * @brief Create the event queue, the flatcc builder and the @c Comms task.
- * @details Three ordered steps; see @ref comms_task_create (the public API
- *          declaration in @ref comms_task.h) for the full contract.  The queue
- *          comes first so that a failure cannot leave an ISR posting into a
- *          missing queue, then the builder, then the task itself.
+ * @brief Create both event queues, the flatcc builder and the @c Comms task.
+ * @details Four ordered steps; see @ref comms_task_create (the public API
+ *          declaration in @ref comms_task.h) for the full contract.  The two
+ *          queues come first so that a failure cannot leave a poster writing
+ *          into a missing queue and so that the task never runs before both
+ *          exist, then the builder, then the task itself.  The RX-hint queue
+ *          and the dedicated button queue are independent, so button events no
+ *          longer wait behind RX traffic (DRT-011, BTN-004, LED-006).
  *
  *          Failure handling is deliberately minimal: an earlier successful step
  *          is not rolled back, because the application treats a failed creation
  *          as fatal and never retries.
  *
- * @return true when the queue, the builder and the task all exist.
+ * @return true when both queues, the builder and the task all exist.
  * @retval false @c xQueueCreate returned @c NULL (FreeRTOS heap exhausted).
- * @retval false @c flatcc_builder_init failed; the queue handle stays set.
- * @retval false @c xTaskCreate did not return @c pdPASS; the builder and the
- *               queue stay initialised but no task consumes them.
+ * @retval false @c flatcc_builder_init failed; the queue handles stay set.
+ * @retval false @c xTaskCreate did not return @c pdPASS; the builder and both
+ *               queues stay initialised but no task consumes them.
  *
  * @pre Called once from @c main before @c vTaskStartScheduler, after the HAL,
  *      the clocks and @ref app_uart3_init, while the FreeRTOS heap still has
@@ -1457,14 +1509,18 @@ static void comms_task(void *arg)
  * @post On success the task is ready and both posters accept events.
  * @post On failure the link cannot answer requests; the caller must not start
  *       the scheduler.
- * @warning Not idempotent and not thread-safe: calling it twice creates a second
- *          queue and a second task and leaks the first pair.
+ * @warning Not idempotent and not thread-safe: calling it twice creates a
+ *          second pair of queues and a second task and leaks the first pair.
  * @see comms_task, comms_post_rx_from_isr, comms_post_button_event
  */
 bool comms_task_create(void)
 {
     comms_queue = xQueueCreate(COMMS_EVENT_QUEUE_LEN, sizeof(comms_event_t));
     if (comms_queue == NULL) {
+        return false;
+    }
+    button_queue = xQueueCreate(COMMS_BUTTON_QUEUE_LEN, sizeof(comms_event_t));
+    if (button_queue == NULL) {
         return false;
     }
     if (flatcc_builder_init(&builder) != 0) {
@@ -1484,10 +1540,10 @@ bool comms_task_create(void)
  *          runs; the received bytes remain in the DMA ring.
  *
  * @pre Interrupt context with the scheduler running; before
- *      @ref comms_task_create the queue handle is @c NULL and the call returns
- *      without touching FreeRTOS.
- * @post One more @c COMMS_EVT_RX entry is queued, or nothing when the queue is
- *       full.
+ *      @ref comms_task_create the RX-hint queue handle is @c NULL and the call
+ *      returns without touching FreeRTOS.
+ * @post One more @c COMMS_EVT_RX entry is queued, or nothing when the RX-hint
+ *       queue is full.
  * @note The hint is advisory and carries no payload: the task re-reads the ring
  *       anyway, so a dropped hint costs latency, never data.
  * @note @c portYIELD_FROM_ISR is called with the value the queue operation
@@ -1509,26 +1565,29 @@ void comms_post_rx_from_isr(void)
 }
 
 /**
- * @brief Report a B1 press to the Comms task.
+ * @brief Report a B1 press to the Comms task without blocking.
  * @details Task-context producer of @c COMMS_EVT_BUTTON; see
  *          @ref comms_post_button_event in @ref comms_task.h for the full
- *          contract.  The 20 ms send timeout implements BTN-004: a press must
- *          not be lost just because a burst of RX hints filled the queue.
+ *          contract.  The event goes to the dedicated @ref button_queue with a
+ *          zero-tick timeout, so the LED task never waits behind a burst of RX
+ *          hints and its pin updates keep the LED-006 jitter budget (BTN-004,
+ *          LED-006).  A full button queue drops the event.
  *
  * @param[in] press   Press kind: 1 for a short press, 2 for a long press.
  * @param[in] pattern @c APP_PATTERN_* value selected by the press.
  * @param[in] period  Pattern period in milliseconds.
  *
  * @pre Called from the LED task after it has already applied the pattern.
- * @post Either one button entry is queued, or the event was dropped after the
- *       20 ms timeout and @c Status keeps reporting the previous pattern.
- * @warning Blocks the caller for up to 20 ms, which can shift LED pattern
- *          timing by that amount.
+ * @post Either one button entry is queued, or the event was dropped because
+ *       @ref button_queue was full; @c Status then keeps reporting the previous
+ *       pattern until the next LED command or button event.
+ * @warning Never blocks: the call returns immediately even when the button
+ *          queue is full, so LED pattern timing is unaffected.
  * @see handle_button_event, led_post_button
  */
 void comms_post_button_event(uint8_t press, uint8_t pattern, uint16_t period)
 {
-    if (comms_queue == NULL) {
+    if (button_queue == NULL) {
         return;
     }
     comms_event_t event = {
@@ -1537,7 +1596,8 @@ void comms_post_button_event(uint8_t press, uint8_t pattern, uint16_t period)
         .pattern = pattern,
         .period = period
     };
-    /* BTN-004: a short press must not be lost just because a burst of RX
-     * events filled the queue; wait a little for a slot. */
-    (void)xQueueSend(comms_queue, &event, pdMS_TO_TICKS(20));
+    /* BTN-004/LED-006: post with no wait at all.  The LED task must not stall
+     * behind RX hints; when the dedicated button queue is full the event is
+     * dropped instead. */
+    (void)xQueueSend(button_queue, &event, 0U);
 }

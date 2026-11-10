@@ -50,8 +50,39 @@ def semver(value: str) -> int:
     parts = value.split(".")
     if len(parts) != 3:
         raise ValueError(f"version must be major.minor.patch, got {value!r}")
-    major, minor, patch = (int(p) & 0xFF for p in parts)
+    try:
+        major, minor, patch = (int(p, 10) for p in parts)
+    except ValueError:
+        raise ValueError(
+            f"version components must be decimal integers, got {value!r}"
+        ) from None
+    if not all(0 <= part <= 0xFF for part in (major, minor, patch)):
+        raise ValueError(
+            f"version components must be 0..255 for the image header, "
+            f"got {value!r}")
     return (major << 24) | (minor << 16) | patch
+
+
+def parse_timestamp(value: str) -> int:
+    if not value:
+        return 0
+    try:
+        timestamp = int(value, 0)
+    except ValueError:
+        raise ValueError(f"timestamp must be an integer, got {value!r}") from None
+    if not 0 <= timestamp <= 0xFFFFFFFF:
+        raise ValueError(
+            f"timestamp must be in 0..0xFFFFFFFF, got {value!r}")
+    return timestamp
+
+
+def validate_metadata(args) -> None:
+    semver(args.version)
+    parse_timestamp(args.timestamp)
+    name = args.name.encode("ascii", "replace")
+    if len(name) > 32:
+        raise ValueError(
+            f"name must be at most 32 bytes, got {len(name)}")
 
 
 def version_text(value: int) -> str:
@@ -98,7 +129,7 @@ def validate_binary(binary: bytes) -> list[str]:
 def build_header(binary: bytes, args) -> bytes:
     version = semver(args.version)
     image_crc = zlib.crc32(binary) & 0xFFFFFFFF
-    timestamp = int(args.timestamp, 0) if args.timestamp else 0
+    timestamp = parse_timestamp(args.timestamp)
     entry = struct.unpack_from("<I", binary, 4)[0]
 
     header = bytearray(HEADER_SIZE)
@@ -113,7 +144,7 @@ def build_header(binary: bytes, args) -> bytes:
     struct.pack_into("<I", header, 28, entry)
     struct.pack_into("<I", header, 32, timestamp)
     header[36:56] = commit_bytes(args.commit)
-    header[56:88] = args.name.encode("ascii", "replace")[:32].ljust(32, b"\0")
+    header[56:88] = args.name.encode("ascii", "replace").ljust(32, b"\0")
     struct.pack_into("<I", header, 252, zlib.crc32(header[:252]) & 0xFFFFFFFF)
     return bytes(header)
 
@@ -192,21 +223,32 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.inspect is not None:
-        return inspect(args.inspect)
+        try:
+            return inspect(args.inspect)
+        except OSError as exc:
+            print(f"mkimage: {exc.filename}: {exc.strerror}", file=sys.stderr)
+            return 1
 
     if args.input is None or args.output is None:
         parser.error("--input and --output are required unless --inspect")
 
-    binary = args.input.read_bytes()
-    errors = validate_binary(binary)
-    if errors:
-        for error in errors:
-            print(f"mkimage: {error}", file=sys.stderr)
-        return 1
+    try:
+        validate_metadata(args)
+        binary = args.input.read_bytes()
+        errors = validate_binary(binary)
+        if errors:
+            for error in errors:
+                print(f"mkimage: {error}", file=sys.stderr)
+            return 1
 
-    header = build_header(binary, args)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_bytes(header + binary)
+        header = build_header(binary, args)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_bytes(header + binary)
+    except ValueError as exc:
+        parser.error(str(exc))
+    except OSError as exc:
+        print(f"mkimage: {exc.filename}: {exc.strerror}", file=sys.stderr)
+        return 1
 
     image_crc = zlib.crc32(binary) & 0xFFFFFFFF
     print(f"mkimage: {args.output} ({HEADER_SIZE + len(binary)} bytes, "

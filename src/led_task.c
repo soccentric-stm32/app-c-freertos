@@ -493,10 +493,9 @@ static void evaluate(const led_cfg_t *cfg, bool second_led, uint32_t now,
  * @param[in] pattern Pattern now applied to LD1 and LD2.
  * @param[in] period  Period now applied to LD1 and LD2, in milliseconds.
  *
- * @warning Blocks the caller for up to 20 ms when the Comms event queue is
- *          full, which delays the rest of the LED loop by that amount.  The
- *          pattern phase itself is unaffected because it is derived from the
- *          tick count.
+ * @note Non-blocking: the Comms task posts to a dedicated button queue with a
+ *       zero-tick timeout, so a full queue drops the event instead of delaying
+ *       the LED loop (BTN-004, LED-006).
  * @note The result is discarded: a dropped event affects only the mirrored
  *       @c Status, never the LEDs.
  * @note Task context, never an ISR.
@@ -621,8 +620,9 @@ static void apply_set(led_cfg_t cfg[3], uint8_t led, uint8_t pattern,
  * @warning A clear is lost when the producer clears the global latch but the
  *          message cannot be queued: the bit stays in the accumulator and
  *          keeps driving LD3 until the next reset.
- * @note Task context only.  A button message may block for up to 20 ms inside
- *       @ref send_button_event.
+ * @note Task context only.  A button message does not block: the dedicated
+ *       button queue in @ref send_button_event can drop the host report but
+ *       never delays the pattern update.
  * @see apply_set
  */
 static void handle_message(led_cfg_t cfg[3], const led_msg_t *msg,
@@ -725,9 +725,9 @@ static void handle_message(led_cfg_t cfg[3], const led_msg_t *msg,
  * @note Because @ref evaluate derives the level from the absolute tick count,
  *       a long preemption or a late wake-up still shows the correct level; it
  *       only removes the overshoot from a segment.
- * @warning Handling a button message can block for up to 20 ms in
- *          @ref comms_post_button_event, which delays the pin update and the
- *          next check-in by that amount.
+ * @note Handling a button message never blocks: @ref comms_post_button_event
+ *       posts to its own queue with a zero-tick timeout, so the pin update and
+ *       the next check-in keep their timing (BTN-004, LED-006).
  * @see led_task_create
  * @see evaluate
  */

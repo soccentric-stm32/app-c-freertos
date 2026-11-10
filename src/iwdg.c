@@ -34,6 +34,14 @@
  *          The two value keys come from the HAL header `stm32f7xx_hal_iwdg.h`;
  *          only the access key is defined locally, in @ref IWDG_KEY_ACCESS.
  *
+ *          **LSI start and bounded waits.**  On a stand-alone start the LSI
+ *          may still be off, in which case the IWDG update flags never clear.
+ *          @ref app_iwdg_init therefore starts the LSI first, through
+ *          @ref iwdg_start_lsi, and the readiness check and the update-flag
+ *          poll are both bounded by @ref IWDG_WAIT_LOOPS so a dead LSI cannot
+ *          hang `main()`.  The sequence matches the bootloader so both images
+ *          bring the watchdog up the same way.
+ *
  *          **Already-running detection.**  @ref app_iwdg_init programs the
  *          peripheral only while `PR` and `RLR` still hold their reset values
  *          (0 and 0xFFF).  Any other combination is taken as proof that BOOT,
@@ -99,7 +107,52 @@
 #define IWDG_RELOAD_4S        1999U
 
 /**
- * @brief Spin until the IWDG shadow registers have finished updating.
+ * @brief Bound on the LSI-ready and IWDG update-flag polls.
+ * @details About 40 ms at 216 MHz, generous for the roughly 160 us the LSI
+ *          and an update transfer actually need, but short enough that a dead
+ *          LSI or a stuck update flag cannot hang the start-up.  The same
+ *          limit is used by @ref iwdg_start_lsi and @ref iwdg_wait_ready and
+ *          matches the bootloader's bound, so both images fail the same way.
+ * @see iwdg_start_lsi
+ * @see iwdg_wait_ready
+ */
+#define IWDG_WAIT_LOOPS       1000000UL
+
+/**
+ * @brief Start the LSI and wait, with a bound, for it to become ready.
+ * @details Sets `RCC->CSR` @c LSION and polls @c LSIRDY for at most
+ *          @ref IWDG_WAIT_LOOPS iterations.  The IWDG update flags PVU, RVU
+ *          and WVU are clocked from the LSI, so they can never clear while
+ *          the oscillator is off; on a stand-alone start this call must
+ *          therefore run before `PR` and `RLR` are written.  When BOOT is
+ *          present the LSI is already running and both the set and the ready
+ *          bit are no-ops.
+ *
+ * @pre  Called from @ref app_iwdg_init before the watchdog registers are
+ *       programmed.
+ * @post The LSI is enabled; @c LSIRDY is set when it started within the
+ *       bound.  On timeout the function returns anyway and the caller
+ *       proceeds, so a dead LSI leaves a watchdog that may not run instead of
+ *       hanging `main()` forever.
+ *
+ * @note Bounded busy-wait of at most @ref IWDG_WAIT_LOOPS iterations; no
+ *       interrupt, HAL call or allocation is involved.
+ * @warning Blocking.  Start-up only, before the scheduler exists.
+ * @see iwdg_wait_ready
+ * @see app_iwdg_init
+ */
+static void iwdg_start_lsi(void)
+{
+    RCC->CSR |= RCC_CSR_LSION;
+    for (uint32_t i = 0U; i < IWDG_WAIT_LOOPS; i++) {
+        if ((RCC->CSR & RCC_CSR_LSIRDY) != 0U) {
+            return;
+        }
+    }
+}
+
+/**
+ * @brief Spin, with a bound, until the IWDG shadow registers have updated.
  * @details Polls `IWDG->SR` and returns once the prescaler update flag (PVU),
  *          the reload update flag (RVU) and the watchdog enable / voltage
  *          domain update flag (WVU) are all clear.  Each flag is raised by
@@ -107,31 +160,34 @@
  *          shadow register into the LSI clock domain; while a flag is set the
  *          matching register ignores further writes, so the wait is mandatory
  *          between programming `PR`/`RLR` and issuing the reload and enable
- *          keys.  The body executes @c __NOP() so the loop does not busy-read
- *          with back-to-back loads and single-stepping under a debugger lands
- *          on a defined instruction.
+ *          keys.  The loop runs at most @ref IWDG_WAIT_LOOPS iterations, so
+ *          a dead LSI cannot block the start-up indefinitely.
  *
  * @pre  Write access has been opened with @ref IWDG_KEY_ACCESS and new values
  *       have been stored to `IWDG->PR` and `IWDG->RLR`.
  * @post PVU, RVU and WVU are clear and the programmed configuration is
  *       visible to the LSI domain, so the reload and enable keys take effect.
+ *       On timeout the flags may still be set; the caller continues with the
+ *       configuration that did land rather than waiting forever.
  *
  * @note The transfer costs a few LSI periods, tens of microseconds at most,
  *       and the function is only called from @ref app_iwdg_init during
  *       start-up, before the scheduler exists.
- * @note There is no timeout: the flags cannot remain set with a running LSI,
- *       and the only alternative would be to return with an unconfigured
- *       watchdog, which is worse than waiting.
+ * @note Bounded by @ref IWDG_WAIT_LOOPS, matching the bootloader: a dead LSI
+ *       or a stuck flag must not hang `main()`.
  * @warning Blocking.  Must not be called from an ISR or from a task once the
  *          scheduler is running, and requires write access to `PR`/`RLR` to
  *          still be open, otherwise the flags are already clear and the wait
  *          returns immediately on a configuration that was never applied.
+ * @see iwdg_start_lsi
  * @see app_iwdg_init
  */
 static void iwdg_wait_ready(void)
 {
-    while ((IWDG->SR & (IWDG_SR_PVU | IWDG_SR_RVU | IWDG_SR_WVU)) != 0U) {
-        __NOP();
+    for (uint32_t i = 0U; i < IWDG_WAIT_LOOPS; i++) {
+        if ((IWDG->SR & (IWDG_SR_PVU | IWDG_SR_RVU | IWDG_SR_WVU)) == 0U) {
+            return;
+        }
     }
 }
 
@@ -177,11 +233,13 @@ void app_iwdg_early_kick(void)
  *          `IWDG->PR` and `IWDG->RLR`, whose reset values are 0 (/4) and 0xFFF
  *          (4095):
  *          -# `PR == 0` and `RLR == 0xFFF` means no stage has programmed the
- *             watchdog yet, so the function opens register access with
+ *             watchdog yet, so the function first starts the LSI with
+ *             @ref iwdg_start_lsi and waits for it, then enables the counter
+ *             with @ref IWDG_KEY_ENABLE, opens register access with
  *             @ref IWDG_KEY_ACCESS, writes `IWDG_PRESCALER_64` to `PR` and
  *             @ref IWDG_RELOAD_4S to `RLR`, waits for the update flags with
- *             @ref iwdg_wait_ready, then reloads and enables the counter with
- *             the 0xAAAA and 0xCCCC keys;
+ *             the bounded @ref iwdg_wait_ready, and reloads with
+ *             @ref IWDG_KEY_RELOAD;
  *          -# any other value means BOOT, or a previous application image,
  *             already configured the watchdog, so the registers are left
  *             untouched to preserve the inherited 4 s timeout.
@@ -207,6 +265,9 @@ void app_iwdg_early_kick(void)
  * @note The LSI counts through `app_clock_init()`, so a slow or retried clock
  *       tree configuration is covered by the BOOT-started timeout rather than
  *       by a watchdog that only starts afterwards.
+ * @note On a stand-alone start the LSI and the update-flag waits are bounded
+ *       by @ref IWDG_WAIT_LOOPS, so a failing oscillator cannot hang `main()`.
+ *       The same sequence is used by the bootloader.
  * @warning The detection can only recognise a *programmed* watchdog.  A stage
  *          that enables the counter without writing `PR` and `RLR` keeps the
  *          reset values (/4, 4095, about 512 ms), looks unconfigured here and
@@ -225,12 +286,13 @@ void app_iwdg_init(void)
     bool running = (IWDG->PR != 0U) || (IWDG->RLR != 0x0FFFU);
 
     if (!running) {
+        iwdg_start_lsi();           /* update flags need a running LSI */
+        IWDG->KR = IWDG_KEY_ENABLE;
         IWDG->KR = IWDG_KEY_ACCESS; /* open write access to PR and RLR */
         IWDG->PR = IWDG_PRESCALER_64;
         IWDG->RLR = IWDG_RELOAD_4S;
-        iwdg_wait_ready();          /* PR/RLR visible before the keys */
+        iwdg_wait_ready();          /* bounded: PR/RLR visible for reload */
         IWDG->KR = IWDG_KEY_RELOAD;
-        IWDG->KR = IWDG_KEY_ENABLE;
     }
 
     app_iwdg_kick();

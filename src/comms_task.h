@@ -19,7 +19,7 @@
  *
  *          Repeated request sequence numbers resend the previously built
  *          reply without executing the request a second time (LNK-008).  All
- *          buffers, the flatcc builder and the event queue are static and
+ *          buffers, the flatcc builder and both event queues are static and
  *          created once at start-up, so the task never allocates afterwards
  *          (DRT-004).  Reception errors and DMA aborts re-arm the receiver
  *          instead of killing the link, and the task checks in with the health
@@ -31,7 +31,7 @@
  * @author  Sandesh Ghimire <sandesh@soccentric.com>
  * @date    2026-11-03
  * @target  STM32F767ZIT6
- * @srs     COM-001..COM-007, BTN-004, section 8
+ * @srs     COM-001..COM-007, BTN-004, LED-006, section 8
  * @ingroup comms_task
  */
 
@@ -42,27 +42,31 @@
 #include <stdint.h>
 
 /**
- * @defgroup comms_task HWLINK Comms task and its event queue
+ * @defgroup comms_task HWLINK Comms task and its event queues
  * @brief USART3 protocol task, its start-up helper and the two event posters.
  * @details The group covers the only task allowed to parse HWLINK traffic and
  *          the only task allowed to transmit on USART3.
  *
- *          **Queue ownership.**  @ref comms_task_create allocates one static
- *          FreeRTOS queue of 16 @c comms_event_t entries.  The queue is
- *          private to this module: @ref comms_task is its only consumer, and
- *          the only producers are @ref comms_post_rx_from_isr (UART ISR/DMA
- *          callbacks) and @ref comms_post_button_event (LED task).  Events
- *          are hints, not data: an RX event only wakes the task, which then
+ *          **Queue ownership (DRT-011).**  @ref comms_task_create allocates
+ *          two static FreeRTOS queues, both with @c comms_event_t entries:
+ *          a 16-entry RX-hint queue fed by @ref comms_post_rx_from_isr (UART
+ *          ISR/DMA callbacks) and a separate 4-entry button queue fed by
+ *          @ref comms_post_button_event (LED task).  @ref comms_task is the
+ *          only consumer of both.  Splitting them keeps ButtonEvents away
+ *          from high-rate RX hints, so a full RX queue can never delay a
+ *          press report or the LED task (BTN-004, LED-006).  Events are
+ *          hints, not data: an RX event only wakes the task, which then
  *          copies bytes out of the DMA ring itself with
  *          @c app_uart3_rx_read.  Dropping an RX event therefore loses no
- *          bytes, and a full queue is not fatal.
+ *          bytes, and a full queue is not fatal; a full button queue drops
+ *          the ButtonEvent but the LEDs still show the new pattern.
  *
  *          **Task lifecycle.**  @ref comms_task_create must run on the
  *          start-up thread after the HAL, clocks and USART3 are up and before
- *          the scheduler starts.  It creates the queue, initialises the
+ *          the scheduler starts.  It creates both queues, initialises the
  *          single flatcc builder and creates the @c Comms task at priority
  *          @c tskIDLE_PRIORITY + 4 with a 1536-word stack.  The task then runs
- *          forever: it blocks up to 10 ms for an event, drains queued events,
+ *          forever: it blocks up to 10 ms for an RX hint, drains both queues,
  *          polls the DMA ring, restarts the receiver when it has stopped,
  *          applies the 5 s baud revert (COM-001) and checks in with the health
  *          task every 500 ms.  It never returns and never suspends itself.
@@ -81,43 +85,46 @@
  * @note Task names, priorities and buffer sizes are compile-time constants in
  *       @ref comms_task.c; nothing here is configurable at run time.
  * @warning @ref comms_task_create is not idempotent and not thread-safe.
- *          Call it exactly once, before the scheduler, or the queue or the
+ *          Call it exactly once, before the scheduler, or the queues or the
  *          flatcc builder will be created twice.
  * @{
  */
 
 /**
- * @brief Create the Comms task, its event queue and the flatcc builder.
- * @details Allocates the 16-entry event queue, initialises the module-wide
- *          flatcc builder used for every reply, then creates the @c Comms
- *          task with a 1536-word stack at @c tskIDLE_PRIORITY + 4.  The task
- *          is created in the ready state and starts running as soon as the
- *          scheduler is started, so it does not run during this call.
+ * @brief Create the Comms task, both event queues and the flatcc builder.
+ * @details Allocates the 16-entry RX-hint queue and the separate 4-entry
+ *          button queue, initialises the module-wide flatcc builder used for
+ *          every reply, then creates the @c Comms task with a 1536-word stack
+ *          at @c tskIDLE_PRIORITY + 4.  The task is created in the ready state
+ *          and starts running as soon as the scheduler is started, so it does
+ *          not run during this call.
  *
- *          The three steps are ordered deliberately: a failure in any of them
- *          returns @c false so the caller can refuse to start a link that
- *          cannot answer requests.  Resources already created by an earlier,
- *          successful step are not released on a later failure.
+ *          The four steps are ordered deliberately: both queues exist before
+ *          the task is created, so the task can never run with a missing queue,
+ *          and a failure in any step returns @c false so the caller can refuse
+ *          to start a link that cannot answer requests.  Resources already
+ *          created by an earlier, successful step are not released on a later
+ *          failure.
  *
- * @return true when the queue, the builder and the task all exist.
+ * @return true when both queues, the builder and the task all exist.
  * @retval true  The @c Comms task is ready to be scheduled.
- * @retval false Queue creation, flatcc builder initialisation or
+ * @retval false Either @c xQueueCreate, flatcc builder initialisation or
  *               @c xTaskCreate failed; the link is not usable.
  *
  * @pre HAL, the clocks, the caches/MPU and @c app_uart3_init have completed,
  *      and HWLINK callbacks may already post RX events.
  * @pre Called from the start-up thread before @c vTaskStartScheduler, while
- *      the FreeRTOS heap still has room for the stack and the queue.
+ *      the FreeRTOS heap still has room for the stack and both queues.
  * @post On success @ref comms_post_rx_from_isr and
  *       @ref comms_post_button_event accept events instead of returning
  *       immediately.
- * @post On failure the module's queue handle remains @c NULL, so both posters
- *       stay no-ops.
+ * @post On failure @ref comms_task_create returns @c false and the queue that
+ *       could not be created stays @c NULL, so its poster remains a no-op.
  *
  * @note Called once from @c main() as part of the task creation sequence; the
  *       flatcc builder is shared by all reply paths and is reset (not
  *       re-initialised) after each message.
- * @warning Partial failures leak the queue and/or the builder.  There is no
+ * @warning Partial failures leak the queues and/or the builder.  There is no
  *          teardown path because the application treats a failed creation as
  *          fatal and never retries.
  * @see comms_post_rx_from_isr
@@ -127,7 +134,7 @@ bool comms_task_create(void);
 
 /**
  * @brief Wake the Comms task after the UART receiver produced data or failed.
- * @details Posts a single @c COMMS_EVT_RX hint to the module queue using
+ * @details Posts a single @c COMMS_EVT_RX hint to the RX-hint queue using
  *          @c xQueueSendFromISR and yields if a higher-priority task was
  *          unblocked.  Called from the USART3 RX complete and half-complete
  *          callbacks, the UART error callback and the USART3 interrupt
@@ -141,8 +148,8 @@ bool comms_task_create(void);
  *          @c app_uart3_rx_running reports the receiver has stopped
  *          (COM-002, HLT-001).
  *
- * @pre @ref comms_task_create has run; before that the queue handle is @c NULL
- *      and the call returns without touching FreeRTOS.
+ * @pre @ref comms_task_create has run; before that the RX-hint queue handle is
+ *      @c NULL and the call returns without touching FreeRTOS.
  * @post A successful post leaves one more RX hint in the queue; received
  *       bytes stay in the DMA ring until the task copies them.
  *
@@ -174,10 +181,14 @@ void comms_post_rx_from_isr(void);
  *          @ref APP_PATTERN_COUNT and @p period lies between
  *          @ref APP_LED_MIN_PERIOD and @ref APP_LED_MAX_PERIOD.
  *
- *          The event is dropped when the queue stays full for 20 ms.  The LED
- *          task has already applied the pattern, but the Comms task never
- *          sees the change, so the @c Status reply keeps reporting the old
- *          pattern until the next LED command or button event arrives.
+ *          **Dedicated, non-blocking queue (BTN-004, LED-006).**  The event is
+ *          posted to a button-only queue with a zero-tick timeout, so the LED
+ *          task never waits for a slot behind high-rate RX hints and stays
+ *          inside its <2 ms pin-update jitter budget.  If that queue is full
+ *          the event is dropped: the LED task has already applied the pattern,
+ *          so only the host report is lost and the @c Status reply keeps
+ *          reporting the old pattern until the next LED command or button
+ *          event arrives.  The LED animation itself is never delayed.
  *
  * @param[in] press   Press kind: 1 for a short press, 2 for a long press.
  * @param[in] pattern LED pattern the button selected; one of the
@@ -187,17 +198,18 @@ void comms_post_rx_from_isr(void);
  *
  * @pre @ref comms_task_create has run; otherwise the call returns immediately.
  * @post Either one @c COMMS_EVT_BUTTON entry is queued, or the event was
- *       dropped after the 20 ms timeout.
+ *       dropped because the button queue was full.
  * @post When the event was queued, the Comms task mirrors the state and, if
  *       the link is open, sends a single @c ButtonEvent.
  *
- * @note Task context (the LED task), never an ISR.  The 20 ms wait implements
- *       BTN-004: a press must not be lost just because a burst of RX events
- *       filled the queue.
+ * @note Task context (the LED task), never an ISR.  The zero-tick send is what
+ *       implements BTN-004 without violating LED-006: a burst of RX hints can
+ *       neither lose the press to a timeout nor stall the LED task.
  * @note Values of @p press other than 1 and 2 are forwarded unchanged; the
  *       host decodes them with @c hwlink_ButtonPress_enum_t.
- * @warning Blocks the caller for up to 20 ms, which can delay the LED task
- *          and therefore pattern timing by that amount.
+ * @warning Never blocks the caller.  A full button queue drops the event, so
+ *          the host may miss one press report, but LED pattern timing is
+ *          unaffected.
  * @see comms_post_rx_from_isr
  * @see led_post_button
  */

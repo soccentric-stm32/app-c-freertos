@@ -44,15 +44,17 @@ void TIM6_DAC_IRQHandler(void);
  *          @c HAL_RCC_GetPCLK1Freq(): APB1 timers run at PCLK1 when the APB1
  *          prescaler is /1 and at twice PCLK1 otherwise (RM0410).  That clock
  *          is divided to 1 MHz by TIM6->PSC, and TIM6->ARR is set to 999 so
- *          that 1000 counts produce one update per millisecond.  Writing
- *          TIM6->EGR = TIM_EGR_UG latches PSC and ARR and reloads the
- *          counter; SR is then cleared so the software update leaves no
- *          pending flag.  UIE enables the update interrupt and CEN|URS starts
- *          the counter.  URS makes only a counter overflow generate the
- *          update interrupt, so the UG event above does not cause a spurious
- *          tick.  Finally the handler priority is stored in uwTickPrio and
- *          programmed into the NVIC with NVIC_SetPriority() and
- *          NVIC_EnableIRQ().
+ *          that 1000 counts produce one update per millisecond.  The divider
+ *          is clamped to at least 1 before the prescaler value is formed, so
+ *          a timer clock below 1 MHz cannot underflow the `clk / 1 MHz - 1`
+ *          expression.  Writing TIM6->EGR = TIM_EGR_UG latches PSC and ARR and
+ *          reloads the counter; SR is then cleared so the software update
+ *          leaves no pending flag.  UIE enables the update interrupt and
+ *          CEN|URS starts the counter.  URS makes only a counter overflow
+ *          generate the update interrupt, so the UG event above does not
+ *          cause a spurious tick.  Finally the handler priority is stored in
+ *          uwTickPrio and programmed into the NVIC with NVIC_SetPriority()
+ *          and NVIC_EnableIRQ().
  *
  *          @c HAL_Init() calls this early, while the reset HSI still clocks
  *          APB1.  @c HAL_RCC_ClockConfig() calls it again at the end of
@@ -78,6 +80,12 @@ void TIM6_DAC_IRQHandler(void);
  *
  * @note TIM6 and the DAC share TIM6_DAC_IRQn and TIM6_DAC_IRQHandler(); the
  *       DAC is not enabled by this build, so the vector belongs to the tick.
+ * @note A timer clock below 1 MHz cannot be divided down to exactly 1 MHz.
+ *       The divider is then clamped to 1, which leaves TIM6->PSC at 0 and
+ *       makes the update period longer than 1 ms instead of wrapping the
+ *       prescaler to an arbitrary large value.  All normal clock-tree
+ *       configurations are well above 1 MHz, so this is a defensive fallback
+ *       only.
  * @note This function is not thread-safe: it reconfigures a running timer and
  *       the NVIC without masking interrupts.  Call it during start-up or
  *       while the scheduler is not using HAL timing.
@@ -105,7 +113,11 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
     uint32_t pclk1 = HAL_RCC_GetPCLK1Freq();
     /* APB timers run at PCLK x2 unless the APB prescaler is 1 (RM0410). */
     uint32_t timclk = ((RCC->CFGR & RCC_CFGR_PPRE1) == 0U) ? pclk1 : pclk1 * 2U;
-    uint32_t prescaler = (timclk / 1000000U) - 1U;
+    uint32_t divider = timclk / 1000000U;
+    if (divider == 0U) {
+        divider = 1U;               /* < 1 MHz: no divide, avoid underflow */
+    }
+    uint32_t prescaler = divider - 1U;
 
     __HAL_RCC_TIM6_CLK_ENABLE();
 

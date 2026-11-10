@@ -152,9 +152,10 @@ bool health_task_create(void);
  * @warning Task context only.  `xTaskNotify` is used rather than
  *          `xTaskNotifyFromISR`, so this must not be called from an interrupt
  *          handler.
- * @warning The range check is `task >= HEALTH_TASK_COUNT`, which does not
- *          reject a negative value; such a value would escape the check and
- *          shift by an out-of-range amount.  Pass one of the enumerators only.
+ * @note    The range check casts @p task to `uint32_t` before comparing with
+ *          @ref HEALTH_TASK_COUNT, so a cast negative value is rejected
+ *          instead of shifting the notification mask by an out-of-range
+ *          amount.  Pass one of the enumerators only.
  * @note    The nominal cadence is once per second per task (`DRT-012`).  One
  *          missed period is tolerated because supervision only gives up after
  *          2 s, but a task that stops checking in for longer stops the

@@ -549,12 +549,22 @@ uint32_t app_uart3_baud(void)
  *          @c head, consumed set to @c produced - drops the whole backlog and
  *          returns 0 instead of returning out-of-order data.
  *
+ *          A completion can reload the DMA counter before
+ *          @ref HAL_UART_RxCpltCallback publishes the matching wrap increment.
+ *          In that short window @c produced has already jumped to the next ring
+ *          while @c uart_rx_wraps is still old, so the unsigned difference looks
+ *          like a near-4 GiB backlog rather than a lap.  Such a backwards delta
+ *          (within @ref UART_RX_RING_SIZE of @c UINT32_MAX) is treated as a
+ *          deferred wrap: the function returns 0 without consuming or
+ *          resynchronising, and the next call observes the published counter
+ *          and wrap together.
+ *
  * @param[out] dst     Destination buffer, written with at most @p max_len bytes.
  * @param[in]  max_len Capacity of @p dst in bytes; 0 makes the call a no-op.
  *
  * @return Number of bytes copied into @p dst.
- * @retval 0 Nothing was unread, @p max_len was 0, or the reader was lapped and
- *           the ring was resynchronised.
+ * @retval 0 Nothing was unread, @p max_len was 0, the wrap increment was still
+ *           in flight, or the reader was lapped and the ring was resynchronised.
  *
  * @pre @p dst addresses at least @p max_len writable bytes.  The pointer is not
  *      validated, so @c NULL with a non-zero @p max_len faults.
@@ -566,25 +576,43 @@ uint32_t app_uart3_baud(void)
  * @note Non-blocking, allocation-free and lock-free.  The DMA keeps filling the
  *       ring during the copy, so the result is a snapshot of the bytes that had
  *       arrived when @c produced was computed.
- * @warning Because @ref uart_rx_wraps and the DMA counter are sampled
- *          separately, a ring wrap between the two reads makes @c produced look
- *          one ring too large.  A single call can then resynchronise early or
- *          copy up to a ring of stale bytes.  The window is a few instructions
- *          wide and the cost is one dropped batch, not a permanent fault.
+ * @note The wrap counter is sampled before and after the DMA remaining-count
+ *       register.  If a full-ring completion lands between the two reads, the
+ *       pair is retried, so @c produced can never combine a new wrap counter
+ *       with an old ring offset and jump one ring ahead.  If instead the counter
+ *       reload happens before @ref HAL_UART_RxCpltCallback increments the wrap
+ *       counter, the deferred-wrap check returns 0 until both agree.
  * @warning Not reentrant and not ISR-safe.  Two concurrent readers would return
  *          the same bytes and corrupt @ref uart_rx_read.
  * @see app_uart3_rx_running, app_uart3_rx_restart, comms_task.h
  */
 uint32_t app_uart3_rx_read(uint8_t *dst, uint32_t max_len)
 {
-    uint32_t head = UART_RX_RING_SIZE - __HAL_DMA_GET_COUNTER(&hdma_usart3_rx);
-    head %= UART_RX_RING_SIZE;
-    uint32_t produced = (uart_rx_wraps * UART_RX_RING_SIZE) + head;
+    /* Sample the wrap counter on both sides of the DMA position.  A full-ring
+     * completion between the two reads increments uart_rx_wraps and reloads the
+     * counter; retrying then keeps the pair consistent instead of advancing
+     * "produced" by a whole ring. */
+    uint32_t wraps = 0U;
+    uint32_t counter = 0U;
+    do {
+        wraps = uart_rx_wraps;
+        counter = __HAL_DMA_GET_COUNTER(&hdma_usart3_rx);
+    } while (wraps != uart_rx_wraps);
 
-    if (produced == uart_rx_consumed || max_len == 0U) {
+    uint32_t head = (UART_RX_RING_SIZE - counter) % UART_RX_RING_SIZE;
+    uint32_t produced = (wraps * UART_RX_RING_SIZE) + head;
+
+    uint32_t delta = produced - uart_rx_consumed;
+    if (delta == 0U || max_len == 0U) {
         return 0U;
     }
-    if ((produced - uart_rx_consumed) > UART_RX_RING_SIZE) {
+    if (delta > (0xFFFFFFFFUL - UART_RX_RING_SIZE)) {
+        /* The DMA counter reloaded before the completion callback published the
+         * wrap increment.  Defer to the next call instead of mistaking the
+         * backwards difference for a lap and discarding the ring. */
+        return 0U;
+    }
+    if (delta > UART_RX_RING_SIZE) {
         /* The DMA lapped the reader: bytes were overwritten.  Resync at the
          * write position instead of returning out-of-order data. */
         uart_rx_read = head;
@@ -592,7 +620,7 @@ uint32_t app_uart3_rx_read(uint8_t *dst, uint32_t max_len)
         return 0U;
     }
 
-    uint32_t count = produced - uart_rx_consumed;
+    uint32_t count = delta;
     if (count > max_len) {
         count = max_len;
         produced = uart_rx_consumed + count;

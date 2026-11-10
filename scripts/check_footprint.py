@@ -16,6 +16,12 @@ import subprocess
 import sys
 
 
+def percent(used: int, limit: int) -> str:
+    if limit <= 0:
+        return "n/a"
+    return f"{used * 100.0 / limit:.1f}%"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--size-tool", default="arm-none-eabi-size")
@@ -45,9 +51,9 @@ def main() -> int:
     ram = data + bss
 
     print(f"footprint: flash {flash} / {args.max_flash} bytes "
-          f"({flash * 100.0 / args.max_flash:.1f}%), "
+          f"({percent(flash, args.max_flash)}), "
           f"RAM {ram} / {args.max_ram} bytes "
-          f"({ram * 100.0 / args.max_ram:.1f}%)")
+          f"({percent(ram, args.max_ram)})")
 
     ok = True
     if flash > args.max_flash:

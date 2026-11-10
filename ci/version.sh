@@ -10,4 +10,9 @@
 
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-sed -n 's/^set(APP_VERSION "\([0-9.]*\)")/\1/p' CMakeLists.txt
+version="$(sed -n 's/^set(APP_VERSION "\([0-9.]*\)")/\1/p' CMakeLists.txt)"
+if [[ -z "$version" ]]; then
+    echo "version.sh: cannot read APP_VERSION from CMakeLists.txt" >&2
+    exit 1
+fi
+printf '%s\n' "$version"

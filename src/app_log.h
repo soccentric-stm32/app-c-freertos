@@ -98,8 +98,9 @@ void app_log_init(void);
  *          zero-padded widths such as `%08lx`.  Width and zero padding apply
  *          to the numeric conversions; the precision applies to `%s` only.
  *          Unsupported conversions are copied literally (`%p` prints `%p`)
- *          and consume no argument, so the remaining arguments still line
- *          up; there is no `*` width and no `%f`, `%o` or `%b`.
+ *          and stop formatting immediately, so they consume no argument and
+ *          no later argument is read; there is no `*` width and no `%f`,
+ *          `%o` or `%b`.
  *
  *          The line is truncated once it reaches 126 characters including
  *          the prefix, so CR and LF always fit.  @c HAL_GetTick() supplies
@@ -165,8 +166,9 @@ void app_log(char level, const char *fmt, ...)
  * @warning If the budget expires with bytes still queued, @c TXEIE stays
  *          disabled, so the remainder is only sent when a later @ref app_log
  *          call re-enables it.
- * @warning Values above about 85937 ms overflow the 32-bit loop counter and
- *          shorten the wait instead of extending it.
+ * @note The loop budget saturates at @c UINT32_MAX instead of wrapping, so a
+ *       timeout above about 86 s waits for the longest representable budget
+ *       rather than returning early.
  * @see app_log, app_log_init
  */
 void app_log_flush(uint32_t timeout_ms);

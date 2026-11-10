@@ -20,6 +20,21 @@ set(APP_VERSION "0.1.0")
 set(APP_FIRMWARE_NAME "stm32-application")
 option(DEMO_FAIL_HEALTH "Force the pending-slot health check to fail (HLT-004)" OFF)
 
+# APP_VERSION feeds the firmware macros and the 8-bit image-header fields, so
+# the shape and each component's range must be checked before the split.
+if(NOT APP_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+    message(FATAL_ERROR
+        "APP_VERSION must be major.minor.patch with decimal components, "
+        "got '${APP_VERSION}'.")
+endif()
+foreach(part IN ITEMS "${CMAKE_MATCH_1}" "${CMAKE_MATCH_2}" "${CMAKE_MATCH_3}")
+    if(part GREATER 255)
+        message(FATAL_ERROR
+            "APP_VERSION components must be 0..255 for the 8-bit image-header "
+            "fields, got '${APP_VERSION}'.")
+    endif()
+endforeach()
+
 string(REPLACE "." ";" APP_VERSION_PARTS "${APP_VERSION}")
 list(GET APP_VERSION_PARTS 0 APP_VERSION_MAJOR)
 list(GET APP_VERSION_PARTS 1 APP_VERSION_MINOR)
@@ -216,7 +231,10 @@ target_link_options(app.elf PRIVATE
 # --- Static analysis (DNFR-004) ----------------------------------------------
 # clang-tidy reuses the compile flags this very configure step produced, so
 # it must run from a configured build tree:  make lint / make lint-strict.
-find_program(CLANG_TIDY clang-tidy REQUIRED)
+# The tool is optional: a normal firmware build must still configure on a host
+# that has no clang-tidy, and only the lint target then reports the missing
+# dependency.
+find_program(CLANG_TIDY clang-tidy)
 option(APP_LINT_STRICT "Treat any clang-tidy finding as an error (lint-strict)" OFF)
 if(APP_LINT_STRICT)
     set(APP_LINT_FLAGS --warnings-as-errors=*)
@@ -235,12 +253,21 @@ math(EXPR MAX_RAM_BYTES "64 * 1024")
 set(APP_LINT_EXTRA_ARGS --extra-arg=-isystem
     --extra-arg=/usr/lib/arm-none-eabi/include)
 
-add_custom_target(clang-tidy
-    COMMAND ${CLANG_TIDY} -quiet -p ${CMAKE_BINARY_DIR} ${APP_LINT_FLAGS}
-            ${APP_LINT_EXTRA_ARGS} ${APP_LINT_SOURCES}
-    COMMENT "Running clang-tidy over the project sources"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    VERBATIM)
+if(CLANG_TIDY)
+    add_custom_target(clang-tidy
+        COMMAND ${CLANG_TIDY} -quiet -p ${CMAKE_BINARY_DIR} ${APP_LINT_FLAGS}
+                ${APP_LINT_EXTRA_ARGS} ${APP_LINT_SOURCES}
+        COMMENT "Running clang-tidy over the project sources"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        VERBATIM)
+else()
+    add_custom_target(clang-tidy
+        COMMAND ${CMAKE_COMMAND} -E echo
+                "clang-tidy not found; install it to run make lint"
+        COMMAND ${CMAKE_COMMAND} -E false
+        COMMENT "clang-tidy is not available"
+        VERBATIM)
+endif()
 
 set(ELF "$<TARGET_FILE:app.elf>")
 find_package(Python3 COMPONENTS Interpreter REQUIRED)

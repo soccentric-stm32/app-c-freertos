@@ -25,10 +25,11 @@
  *          and against the reset that follows, they are not cache maintenance.
  *
  *          Fatal path: @ref app_fault_show_and_reset disables interrupts,
- *          enables the GPIOB clock, turns PB14 into an output by writing
- *          @c RCC->AHB1ENR and @c GPIOB->MODER directly, flashes LD3 three
- *          times in each of two rounds, and resets.  It works before the HAL,
- *          before the clock tree, before the GPIO driver and without a
+ *          reloads the IWDG once so the LD3 pattern starts with a full
+ *          timeout, enables the GPIOB clock, turns PB14 into an output by
+ *          writing @c RCC->AHB1ENR and @c GPIOB->MODER directly, flashes LD3
+ *          three times in each of two rounds, and resets.  It works before
+ *          the HAL, before the clock tree, before the GPIO driver and without a
  *          scheduler, which is what lets the exception wrappers, the FreeRTOS
  *          hooks, the assertion sink and the start-up failures share one path
  *          (DRT-002).  The file uses no libc, no heap and no formatting, so a
@@ -532,6 +533,11 @@ static void fault_led3(bool on)
  *          -# @c __disable_irq sets PRIMASK so nothing can preempt or re-enter
  *             the path.  PRIMASK is not restored because the function does not
  *             return.
+ *          -# The reload key is written to `IWDG->KR` immediately after the
+ *             interrupts are masked, so the roughly 2.2 s LED pattern starts
+ *             with a full 4 s watchdog window instead of the remainder of an
+ *             inherited period.  The write is harmless when the watchdog is
+ *             stopped, and it avoids a dependency on @ref iwdg.c.
  *          -# @c RCC->AHB1ENR @c GPIOBEN is set, followed by @c __DSB, so the
  *             port is clocked before the first GPIO register write.
  *          -# @c GPIOB->MODER is read, the two bits of pin 14 are replaced with
@@ -550,10 +556,11 @@ static void fault_led3(bool on)
  *       tree, the scheduler or the GPIO driver initialised, from task, ISR or
  *       fault context.
  * @post The MCU is reset; the function never returns.
- * @warning Blocks for about 2.2 s with interrupts disabled.  That fits the 4 s
- *          IWDG timeout, but a watchdog configured tighter truncates the
- *          pattern; the reset still happens.  The GPIOB clock stays enabled
- *          and PB14 keeps its new mode until the reset.
+ * @warning Blocks for about 2.2 s with interrupts disabled.  The reload at
+ *          entry gives the pattern a full 4 s IWDG window; a watchdog
+ *          configured tighter still truncates it, but the reset happens.  The
+ *          GPIOB clock stays enabled and PB14 keeps its new mode until the
+ *          reset.
  * @note The pattern is diagnostic only, the record is the authoritative report
  *       (DGEN-004, LED-005).  Nothing is logged or flushed here, because the
  *       console may not exist yet and flushing could block.
@@ -562,6 +569,10 @@ static void fault_led3(bool on)
 void app_fault_show_and_reset(void)
 {
     __disable_irq();
+
+    /* Defer an inherited IWDG reset so the whole pattern fits its window.
+     * The key write is harmless when the watchdog is stopped. */
+    IWDG->KR = IWDG_KEY_RELOAD;
 
     /* Register-level LED set-up: DGEN-004 must work from any context. */
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN;

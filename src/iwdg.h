@@ -6,7 +6,10 @@
  *          path for a hung task, a dead scheduler or a corrupted clock tree.
  *          BOOT starts it with a 4 s timeout before hand-over (`HND-004`);
  *          the application only refreshes that instance, and starts one
- *          itself solely when it is run stand-alone for debugging.
+ *          itself solely when it is run stand-alone for debugging.  On that
+ *          path it first starts the LSI and both the LSI-ready and IWDG
+ *          update-flag waits are bounded, so a dead oscillator cannot hang
+ *          start-up.
  *
  *          **Timeout.**  The IWDG configuration used by both stages is LSI
  *          (~32 kHz) with a /64 prescaler and a reload value of 1999, that is
@@ -87,10 +90,12 @@ void app_iwdg_early_kick(void);
  * @details Detects the reset state of the peripheral by reading `IWDG->PR`
  *          and `IWDG->RLR`:
  *          -# `PR == 0` and `RLR == 0xFFF` means no stage has configured the
- *             watchdog, so the function unlocks the registers with the access
- *             key (0x5555), programs prescaler /64 and reload 1999, waits for
- *             the PVU/RVU/WVU update flags to clear, and writes the reload
- *             (0xAAAA) and enable (0xCCCC) keys;
+ *             watchdog, so the function first starts the LSI and waits, with
+ *             a bound, for it to become ready, enables the counter with the
+ *             enable key (0xCCCC), unlocks the registers with the access key
+ *             (0x5555), programs prescaler /64 and reload 1999, waits with a
+ *             bound for the PVU/RVU/WVU update flags to clear, and writes
+ *             the reload key (0xAAAA);
  *          -# any other value means BOOT, or a previous application image,
  *             already configured and started it, so the configuration is
  *             left untouched to preserve the inherited 4 s timeout.
@@ -112,6 +117,10 @@ void app_iwdg_early_kick(void);
  * @note The LSI keeps counting through `app_clock_init()`, so a slow or
  *       retried clock tree configuration is covered by the BOOT-started
  *       timeout rather than by a watchdog that starts afterwards.
+ * @note The stand-alone start sequence follows the bootloader: LSI on, wait
+ *       ready, enable, unlock, program `PR`/`RLR`, wait for the update flags,
+ *       reload.  Every wait is bounded by a fixed loop count, so a dead LSI
+ *       leaves a possibly inactive watchdog instead of blocking `main()`.
  * @warning The detection can only recognise a *configured* watchdog.  A
  *          stage that starts the counter without writing `PR` and `RLR`
  *          (reset values /4 and 4095, about 512 ms) looks stopped here and

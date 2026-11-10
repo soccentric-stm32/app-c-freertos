@@ -9,9 +9,13 @@
 // github-release-token.  To release: bump the version, push, then push the
 // tag (git tag v0.2.0 && git push origin v0.2.0).
 //
-// Every build command goes through scripts/docker-dev.sh (DCON-001), so a
-// Jenkins agent only needs git and Docker. The stm32-dev image is built from
-// docker/Dockerfile on first use and then reused on that agent.
+// Every command that needs the cross toolchain or the CI helper scripts goes
+// through scripts/docker-dev.sh (DCON-001).  A Jenkins agent therefore needs
+// git, Docker, make (the Toolchain, Build, Static analysis and Image stages
+// invoke make on the host) and the standard POSIX shell tools used below
+// (git, sed, head, ...).  Python is not needed on the agent: python3 lives
+// inside the container.  The stm32-dev image is built from docker/Dockerfile
+// on first use and then reused on that agent.
 //
 // The pipeline is declarative (Jenkins Pipeline 2.x). Run it from a
 // Multibranch Pipeline job or a Pipeline job with "Pipeline script from SCM".
@@ -86,7 +90,7 @@ pipeline {
         stage('Boot contract') {
             steps {
                 sh '''
-                    python3 - <<'PY'
+                    scripts/docker-dev.sh run python3 - <<'PY'
 from pathlib import Path
 
 # Values shared with bootloader (LAY-001..LAY-005, HND-003,
@@ -126,7 +130,7 @@ PY
             steps {
                 sh '''
                     make size
-                    python3 - build/demo.img <<'PY'
+                    scripts/docker-dev.sh run python3 - build/demo.img <<'PY'
 import struct
 import sys
 import zlib
@@ -157,7 +161,8 @@ PY
         stage('Package') {
             steps {
                 sh '''
-                    python3 ci/package.py --name app-c-freertos --version "$(ci/version.sh)" \\
+                    scripts/docker-dev.sh run python3 ci/package.py \\
+                        --name app-c-freertos --version "$(ci/version.sh)" \\
                         build/app.elf build/app.bin build/app.hex build/app.map build/demo.img \\
                         README.md LICENSE
                 '''
@@ -170,7 +175,7 @@ PY
             when { buildingTag() }
             steps {
                 withCredentials([string(credentialsId: 'github-release-token', variable: 'GITHUB_TOKEN')]) {
-                    sh 'python3 ci/github_release.py --tag "${TAG_NAME}" --version "$(ci/version.sh)" dist/*'
+                    sh 'scripts/docker-dev.sh run python3 ci/github_release.py --tag "${TAG_NAME}" --version "$(ci/version.sh)" dist/*'
                 }
             }
         }

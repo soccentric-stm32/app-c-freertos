@@ -384,22 +384,24 @@ static void out_number(log_out_t *out, uint32_t value, uint32_t base,
  *          overflows.
  *
  *          An unsupported conversion is copied through verbatim (`%p` prints
- *          `%p`) and consumes no argument.  There is no `%f`, `%o`, `%b`,
- *          `%n` and no length modifier other than `l`.  A format string that
- *          ends in a lone '%' emits '%' and returns, so the loop never reads
- *          past the terminator.
+ *          `%p`), consumes no argument and returns from the formatter
+ *          immediately, so no later @c va_arg is read and an unknown
+ *          conversion cannot shift the following arguments.  There is no
+ *          `%f`, `%o`, `%b`, `%n` and no length modifier other than `l`.  A
+ *          format string that ends in a lone '%' emits '%' and returns, so
+ *          the loop never reads past the terminator.
  *
  * @param[in,out] out  Sink receiving the expanded characters.
  * @param[in]     fmt  NUL-terminated format string; must not be NULL.
  * @param[in]     args Argument list already positioned after @p fmt; the
  *                     caller owns the @c va_start / @c va_end pair.
  *
- * @pre   Every conversion in @p fmt is one that this subset handles, or the
- *        argument list is read at the wrong offsets: a conversion that is
- *        echoed verbatim but would have taken an argument, such as `%p` or
- *        `%f`, shifts the following @c va_arg calls.
- * @post  @p args has been advanced past the consumed arguments and @p fmt is
- *        not modified.
+ * @pre   Formatting stops at the first unsupported conversion, so text after
+ *        it is not emitted and no argument beyond that point is read.  A
+ *        supported conversion must still match the argument actually passed.
+ * @post  @p args has been advanced past the arguments consumed before the end
+ *        of the format string or before the first unsupported conversion, and
+ *        @p fmt is not modified.
  *
  * @note No allocation, no locale, no recursion; the cost is bounded by the
  *       length of @p fmt plus the characters that fit into @p out.
@@ -464,13 +466,13 @@ static void log_format(log_out_t *out, const char *fmt, va_list args)
         case '%':
             out_char(out, '%');
             break;
-        default:        /* unsupported: show it rather than misread args */
+        default:        /* unsupported: echo it, then stop before later args */
             out_char(out, '%');
             if (*fmt == '\0') {
                 return;
             }
             out_char(out, *fmt);
-            break;
+            return;
         }
     }
 }
@@ -486,8 +488,9 @@ static void log_format(log_out_t *out, const char *fmt, va_list args)
  * @param[in]     fmt NUL-terminated format string; must not be NULL.
  * @param[in]     ... Arguments referenced by @p fmt.
  *
- * @pre   Same constraint as @ref log_format only the supported conversions
- *        may appear, otherwise the argument list is misaligned.
+ * @pre   The format string may contain unsupported conversions;
+ *        @ref log_format stops at the first one without reading later
+ *        arguments.
  * @post  The sink may have grown; no other state changes.
  * @note Deliberately not annotated with @c format(printf, 2, 3): the
  *       implementation accepts a subset and would not honour every
@@ -600,9 +603,9 @@ void app_log(char level, const char *fmt, ...)
  * @warning If the budget expires with bytes still queued, @c TXEIE stays clear
  *          and the remainder is only sent when a later @ref app_log re-enables
  *          the interrupt.
- * @warning `timeout_ms * 50000U` overflows the 32-bit loop counter above
- *          85899 ms (2^32 / 50000), which shortens the wait instead of
- *          extending it.
+ * @note The loop count saturates at @c UINT32_MAX instead of wrapping, so a
+ *       timeout above about 86 s waits for the longest representable budget
+ *       rather than returning immediately.
  * @see app_log, USART6_IRQHandler, log_push
  */
 void app_log_flush(uint32_t timeout_ms)
@@ -614,7 +617,8 @@ void app_log_flush(uint32_t timeout_ms)
      * path, where neither the TXE interrupt nor the HAL tick advances.
      * The bound is a loop count for the same reason (about 4 cycles each
      * at 216 MHz). */
-    uint32_t loops = timeout_ms * 50000U;
+    uint32_t loops = timeout_ms > (UINT32_MAX / 50000U)
+                         ? UINT32_MAX : timeout_ms * 50000U;
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
     while ((log_head != log_tail || (USART6->ISR & USART_ISR_TC) == 0U) &&

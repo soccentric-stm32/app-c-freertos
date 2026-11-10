@@ -71,8 +71,11 @@ clean:
 rebuild: clean
 	@$(MAKE) --no-print-directory build
 
-# clang-tidy needs the compile commands from a configured build tree.
+# clang-tidy needs the compile commands from a configured build tree.  Set the
+# strict flag explicitly so a previous `make lint-strict` does not leak into a
+# later, non-strict run.
 lint: configure
+	$(DEV) run cmake -S /work -B /work/$(BUILD_DIR) -G Ninja -DAPP_LINT_STRICT=OFF
 	$(DEV) run cmake --build /work/$(BUILD_DIR) --target clang-tidy
 
 lint-strict:

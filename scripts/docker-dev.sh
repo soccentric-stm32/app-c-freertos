@@ -17,7 +17,7 @@
 #   scripts/docker-dev.sh run <cmd> [args...]    run one command in the container
 #   scripts/docker-dev.sh probe                  detect the ST-LINK and target chip
 #   scripts/docker-dev.sh flash <file> [addr]    flash .elf/.hex, or .bin at addr
-#                                                (default 0x08000000), then reset
+#                                                (addr required for .bin), then reset
 #   scripts/docker-dev.sh erase                  erase the whole flash
 #   scripts/docker-dev.sh reset                  reset the target and let it run
 #   scripts/docker-dev.sh gdbserver              run OpenOCD: GDB :3333, telnet :4444
@@ -92,6 +92,15 @@ docker_args() {
     for tty in /dev/ttyACM*; do
         [[ -e "$tty" ]] && DOCKER_ARGS+=(--device "$tty")
     done
+
+    # Forward the GitHub token only when the caller has one (Jenkins Release
+    # stage supplies it through withCredentials).  No other secrets are
+    # passed into the container.  Passing the name without a value makes
+    # docker read it from the calling environment, so it never appears in the
+    # command line or the logs.
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        DOCKER_ARGS+=(--env GITHUB_TOKEN)
+    fi
 
     # Always keep stdin open so piped GDB scripts work; add a TTY only when
     # attached to a terminal.

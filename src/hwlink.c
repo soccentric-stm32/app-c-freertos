@@ -105,20 +105,21 @@
  *          HWLINK_FLAG_EVENT, while @ref hwlink_decode_raw rejects those
  *          reserved bits.  A caller that sets any other bit builds a frame
  *          this link will refuse to decode.
- * @note  The `HWLINK_OVERHEAD + payload_len` sum is not overflow-checked: a
- *        @p payload_len within 7 bytes of @c SIZE_MAX would wrap `total` and
- *        pass the capacity test.  Every caller passes a payload of at most
- *        @ref HWLINK_MAX_FRAME bytes, so the case is unreachable in practice.
+ * @note  The payload length is range-checked before the overhead is added, so
+ *        the `HWLINK_OVERHEAD + payload_len` sum can never wrap `size_t` and a
+ *        huge request is rejected instead of passing the capacity test.
  * @see hwlink_cobs_encode, hwlink_decode_raw, app_crc32
  */
 bool hwlink_build_raw(const uint8_t *payload, size_t payload_len,
                       uint8_t flags, uint16_t seq,
                       uint8_t *raw, size_t raw_capacity, size_t *raw_len)
 {
-    size_t total = HWLINK_OVERHEAD + payload_len;
-
     if (raw == NULL || payload == NULL || raw_len == NULL ||
-        total > raw_capacity || total > HWLINK_MAX_FRAME) {
+        payload_len > (HWLINK_MAX_FRAME - HWLINK_OVERHEAD)) {
+        return false;
+    }
+    size_t total = HWLINK_OVERHEAD + payload_len;
+    if (total > raw_capacity) {
         return false;
     }
 
@@ -320,10 +321,10 @@ int hwlink_cobs_decode(const uint8_t *in, size_t in_len,
         }
 
         size_t block = (size_t)code - 1U;
-        if (read + block > in_len) {
+        if (block > in_len - read) {
             return -1;
         }
-        if (write + block > out_capacity) {
+        if (block > out_capacity - write) {
             return -1;
         }
         memcpy(&out[write], &in[read], block);

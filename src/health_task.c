@@ -535,7 +535,14 @@ static void health_task(void *arg)
 
         if (pending && !check_done &&
             (now - start_tick) >= HEALTH_CHECK_AT_MS) {
-            if (health_conditions_met()) {
+            /* The trial window closes at HEALTH_STOP_KICK_MS.  Check the
+             * deadline before the conditions, so a check that only becomes
+             * true after the window cannot still confirm the slot. */
+            if ((now - start_tick) >= HEALTH_STOP_KICK_MS) {
+                health_check_fail();
+                LOG_E("health: conditions not met, stopping the watchdog "
+                      "kick (trial fails)");
+            } else if (health_conditions_met()) {
                 if (app_flash_confirm_running_slot()) {
                     /* The CONFIRMED record is in flash, so the slot is no
                      * longer on trial.  g_handover was decoded once at
@@ -548,10 +555,6 @@ static void health_task(void *arg)
                     health_check_fail();
                     LOG_E("health: CONFIRMED record write failed");
                 }
-            } else if ((now - start_tick) >= HEALTH_STOP_KICK_MS) {
-                health_check_fail();
-                LOG_E("health: conditions not met, stopping the watchdog "
-                      "kick (trial fails)");
             }
         }
 
@@ -618,15 +621,16 @@ bool health_task_create(void)
  * @note Task context only: @c xTaskNotify is the task-level API and must not
  *       be called from an ISR.  An ISR would need @c xTaskNotifyFromISR, which
  *       this module does not provide.
- * @warning The range test is @c task >= HEALTH_TASK_COUNT on an enumerated
- *          type, so a cast negative value is not rejected and would shift by an
- *          out-of-range amount.  Pass the enumerators only.
+ * @note The range test casts @p task to @c uint32_t first, so a cast negative
+ *       value is rejected instead of shifting the notification mask by an
+ *       out-of-range amount.
  * @see health_task_create
  * @see health_task_id_t
  */
 void health_checkin(health_task_id_t task)
 {
-    if (health_task_handle == NULL || task >= HEALTH_TASK_COUNT) {
+    if (health_task_handle == NULL ||
+        (uint32_t)task >= (uint32_t)HEALTH_TASK_COUNT) {
         return;
     }
     (void)xTaskNotify(health_task_handle, 1UL << (uint32_t)task, eSetBits);

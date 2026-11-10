@@ -54,8 +54,10 @@
 /**
  * @brief Maximum accepted TLV area length in bytes (4 KiB).
  * @details A header @c length outside 2..@ref ID_MAX_TLV is rejected.
- *          The same constant sizes the D-cache invalidation window used
- *          before parsing; see @ref parse_from for the window's limits.
+ *          @ref parse_from first invalidates only @ref ID_HEADER_SIZE bytes to
+ *          check the header, then invalidates @ref ID_HEADER_SIZE +
+ *          @ref ID_MAX_TLV bytes before reading the TLV area, so both the
+ *          header and a maximal TLV are read from flash.
  */
 #define ID_MAX_TLV            4096U
 
@@ -189,13 +191,15 @@ static void copy_text(char *out, size_t cap, const uint8_t *data, uint8_t length
  * @brief Validate and parse one PRV1 record at a given flash address.
  * @details Performs the complete validation chain and only then populates the
  *          module cache:
- *          1. Invalidate the data cache over the record window.
- *          2. Copy the 32-byte header and test @ref ID_MAGIC.
+ *          1. Invalidate the data cache over the 32-byte header only.
+ *          2. Copy the header and test @ref ID_MAGIC.
  *          3. Test format and TLV length sanity (2..@ref ID_MAX_TLV).
  *          4. Compare @ref header_crc with the stored header CRC.
  *          5. Compare the 96-bit chip UID with @c header.uid.
- *          6. Compare @ref app_crc32 over the TLV area with @c tlv_crc32.
- *          7. Clear the cache, parse the TLV list and require a non-empty
+ *          6. Invalidate the data cache over the header plus the maximal TLV
+ *             window before touching the TLV area.
+ *          7. Compare @ref app_crc32 over the TLV area with @c tlv_crc32.
+ *          8. Clear the cache, parse the TLV list and require a non-empty
  *             serial and product before setting @c identity.valid.
  *
  *          The TLV list is a sequence of 8-bit type, 8-bit length and value
@@ -225,10 +229,11 @@ static void copy_text(char *out, size_t cap, const uint8_t *data, uint8_t length
  *
  * @note This function does not touch flash programming, locks or the
  *       bootloader metadata record.
- * @warning The D-cache invalidation covers @ref ID_MAX_TLV bytes starting at
- *          @p address, not @ref ID_HEADER_SIZE plus @ref ID_MAX_TLV.  A
- *          maximal 4096-byte TLV therefore leaves its final 32 bytes outside
- *          the invalidated window.
+ * @note The header-only invalidation avoids touching the TLV window when the
+ *       record is absent.  Before any TLV access the invalidation still covers
+ *       the complete record window, @ref ID_HEADER_SIZE + @ref ID_MAX_TLV
+ *       bytes, so a maximal TLV is read from flash rather than from stale
+ *       cache lines.
  * @see app_identity_refresh, app_crc32
  */
 static bool parse_from(uint32_t address)
@@ -236,7 +241,7 @@ static bool parse_from(uint32_t address)
     uint8_t raw[ID_HEADER_SIZE];
     const uint32_t *words = (const uint32_t *)address;
 
-    SCB_InvalidateDCache_by_Addr((uint32_t *)address, ID_MAX_TLV);
+    SCB_InvalidateDCache_by_Addr((uint32_t *)address, ID_HEADER_SIZE);
     memcpy(raw, (const void *)address, sizeof(raw));
     if (words[0] != ID_MAGIC) {
         return false;
@@ -260,6 +265,11 @@ static bool parse_from(uint32_t address)
         return false;
     }
 
+    /* The header is valid, so read the TLV area.  Invalidate the fixed full
+     * window first: a shorter length-based invalidation could leave stale tail
+     * bytes in cache. */
+    SCB_InvalidateDCache_by_Addr((uint32_t *)address,
+                                 ID_HEADER_SIZE + ID_MAX_TLV);
     const uint8_t *tlv = (const uint8_t *)(address + ID_HEADER_SIZE);
     if (app_crc32(tlv, header.length) != header.tlv_crc32) {
         return false;

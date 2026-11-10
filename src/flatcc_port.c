@@ -112,15 +112,19 @@ static flatcc_block_t *flatcc_head;
  *
  * @return @p n rounded up to the next multiple of @ref FLATCC_ALIGNMENT.
  * @retval 0 @p n is 0.
+ * @retval SIZE_MAX @p n is too large to round without wrapping.
  *
- * @note The addition wraps for @p n greater than @c SIZE_MAX - 15, so such a
- *       request is rounded down and may be accepted as a small block instead of
- *       being rejected.  Frame sizes used by the runtime never approach that
- *       range, but the function itself has no overflow detection.
+ * @note A request that would overflow the addition is saturated to
+ *       @c SIZE_MAX, which is larger than the whole arena and is therefore
+ *       rejected by @ref app_flatcc_alloc instead of being rounded down to a
+ *       small block.
  * @see app_flatcc_alloc
  */
 static size_t flatcc_align(size_t n)
 {
+    if (n > (SIZE_MAX - (FLATCC_ALIGNMENT - 1U))) {
+        return SIZE_MAX;
+    }
     return (n + (FLATCC_ALIGNMENT - 1U)) & ~(size_t)(FLATCC_ALIGNMENT - 1U);
 }
 
@@ -255,9 +259,12 @@ void *app_flatcc_alloc(size_t size)
  * @note The predecessor lookup is O(number of blocks) because the list is
  *       singly linked and has no prev pointer.
  * @warning No validation is performed: @p ptr is neither range-checked against
- *          the arena nor checked for an already-free block.  A foreign pointer,
- *          a pointer into the middle of a payload or a double free silently
- *          corrupts the block list.
+ *          the arena nor checked for a pointer into the middle of a payload.
+ *          A foreign pointer still silently corrupts the block list.
+ * @note  An immediately repeated free of a block that is still free is ignored.
+ *        A pointer that was already coalesced into a neighbour, or that never
+ *        belonged to the arena, is no longer a valid header and must not be
+ *        reused; the guard cannot detect it.
  * @warning Not thread-safe and not ISR-safe; it mutates the shared list.
  * @see app_flatcc_alloc
  * @see app_flatcc_realloc
@@ -270,6 +277,9 @@ void app_flatcc_free(void *ptr)
     }
     flatcc_block_t *block = (flatcc_block_t *)((unsigned char *)ptr -
                                                sizeof(flatcc_block_t));
+    if (block->free != 0U) {
+        return;   /* Already free: ignore an immediately repeated free. */
+    }
     block->free = 1U;
 
     /* Coalesce with a free predecessor, then with free followers. */
