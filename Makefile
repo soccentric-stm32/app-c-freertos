@@ -54,7 +54,7 @@ CLANG_FORMAT ?= clang-format
 # formatted here.
 FORMAT_SOURCES := $(shell find src board -type f \( -name '*.c' -o -name '*.h' \) -not -path 'src/generated/*')
 
-.DEFAULT_GOAL := build
+.DEFAULT_GOAL := help
 
 .PHONY: all build configure clean rebuild lint lint-strict format flash \
         erase-all reset debug gdbserver serial probe size docs image help
