@@ -99,12 +99,14 @@
  */
 uint32_t app_crc32(const void *data, size_t len)
 {
-    const uint8_t *p = (const uint8_t *)data;
-    uint32_t crc = 0xFFFFFFFFUL;
+    const uint8_t *p   = (const uint8_t *)data;
+    uint32_t       crc = 0xFFFFFFFFUL;
 
-    for (size_t i = 0U; i < len; i++) {
+    for(size_t i = 0U; i < len; i++)
+    {
         crc ^= p[i];
-        for (uint32_t bit = 0U; bit < 8U; bit++) {
+        for(uint32_t bit = 0U; bit < 8U; bit++)
+        {
             crc = (crc & 1U) != 0U ? (crc >> 1U) ^ 0xEDB88320UL : crc >> 1U;
         }
     }

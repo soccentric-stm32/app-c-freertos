@@ -63,11 +63,12 @@
  *       @c trial_count above 1 as a failed trial.
  * @see app_handover_read
  */
-typedef struct {
-    bool present;         /**< True when the magic matched and the slot is A/B. */
-    uint8_t slot;         /**< @c APP_SLOT_UNKNOWN, @c APP_SLOT_A or @c APP_SLOT_B. */
-    uint8_t trial;        /**< 0 unknown, 1 confirmed, 2 pending (hwlink_TrialState). */
-    uint8_t trial_count;  /**< BOOT trial counter, 0..3; 0 when record absent. */
+typedef struct
+{
+    bool     present;     /**< True when the magic matched and the slot is A/B. */
+    uint8_t  slot;        /**< @c APP_SLOT_UNKNOWN, @c APP_SLOT_A or @c APP_SLOT_B. */
+    uint8_t  trial;       /**< 0 unknown, 1 confirmed, 2 pending (hwlink_TrialState). */
+    uint8_t  trial_count; /**< BOOT trial counter, 0..3; 0 when record absent. */
     uint32_t raw;         /**< Raw @c RTC_BKP2R word, magic and unused bits included. */
 } app_handover_t;
 

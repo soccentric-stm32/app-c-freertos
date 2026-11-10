@@ -214,8 +214,7 @@ int main(void)
 
     /* DGEN-004: take MemManage/BusFault/UsageFault to their own handlers so
      * the saved reason is specific; HardFault catches escalations. */
-    SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk |
-                  SCB_SHCSR_USGFAULTENA_Msk;
+    SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk | SCB_SHCSR_USGFAULTENA_Msk;
     __DSB();
     __ISB();
 
@@ -226,10 +225,12 @@ int main(void)
     app_log_init();
     LOG_I("start v" APP_VERSION_STR " " APP_GIT_COMMIT ", slot %c %s, "
           "reset %s",
-          g_handover.slot == APP_SLOT_A ? 'A' :
-          g_handover.slot == APP_SLOT_B ? 'B' : '?',
-          g_handover.trial == 2U ? "on trial" :
-          g_handover.trial == 1U ? "confirmed" : "no hand-over",
+          g_handover.slot == APP_SLOT_A   ? 'A'
+          : g_handover.slot == APP_SLOT_B ? 'B'
+                                          : '?',
+          g_handover.trial == 2U   ? "on trial"
+          : g_handover.trial == 1U ? "confirmed"
+                                   : "no hand-over",
           app_reset_cause_text);
 
     /* DSAFE-003: three LED pins dark; HND-004: keep BOOT's IWDG timeout. */
@@ -237,33 +238,37 @@ int main(void)
     app_iwdg_init();
 
     /* LED-005: latch LD3 for the last fault or watchdog reset. */
-    if (app_fault_is_valid()) {
+    if(app_fault_is_valid())
+    {
         app_error_set(APP_ERROR_FAULT);
-        LOG_W("last fault: reason %lu in %.16s at %.32s:%lu, pc 0x%08lx",
-              (unsigned long)g_app_fault.reason, g_app_fault.task,
-              g_app_fault.file, (unsigned long)g_app_fault.line,
-              (unsigned long)g_app_fault.pc);
+        LOG_W("last fault: reason %lu in %.16s at %.32s:%lu, pc 0x%08lx", (unsigned long)g_app_fault.reason, g_app_fault.task, g_app_fault.file, (unsigned long)g_app_fault.line, (unsigned long)g_app_fault.pc);
     }
-    if (app_reset_was_error()) {
+    if(app_reset_was_error())
+    {
         app_error_set(APP_ERROR_WATCHDOG);
     }
 
     /* COM-001/002: USART3 must be running before the health check. */
-    if (!app_uart3_init()) {
+    if(!app_uart3_init())
+    {
         startup_fail("uart3 init");
     }
 
     /* DRT-004: every task and queue exists before vTaskStartScheduler(). */
-    if (!led_task_create()) {
+    if(!led_task_create())
+    {
         startup_fail("led task");
     }
-    if (!button_task_create()) {
+    if(!button_task_create())
+    {
         startup_fail("button task");
     }
-    if (!comms_task_create()) {
+    if(!comms_task_create())
+    {
         startup_fail("comms task");
     }
-    if (!health_task_create()) {
+    if(!health_task_create())
+    {
         startup_fail("health task");
     }
 

@@ -80,7 +80,7 @@
  * @warning The HSE pins (PH0/PH1) must never be reconfigured while this value
  *          is in use (`DCON-005`).
  */
-#define HSE_VALUE    8000000U
+#define HSE_VALUE 8000000U
 /**
  * @brief HSE ready timeout in milliseconds.
  * @details Polled by @c HAL_RCC_OscConfig() while it waits for `HSERDY`.  In
@@ -97,7 +97,7 @@
  *          @ref clock.c requests `RCC_HSI_OFF` in the same oscillator
  *          configuration, so the 16 MHz figure matters for start-up only.
  */
-#define HSI_VALUE   16000000U
+#define HSI_VALUE 16000000U
 /**
  * @brief Nominal frequency of the internal low-speed oscillator in Hz.
  * @details This is the IWDG kernel clock and the only clock that keeps
@@ -106,7 +106,7 @@
  * @note The real LSI is far less accurate than 32 kHz; iwdg.c treats the
  *       resulting 4 s as nominal, not as a guaranteed value.
  */
-#define LSI_VALUE    32000U
+#define LSI_VALUE 32000U
 /**
  * @brief Nominal frequency of the 32.768 kHz external crystal in Hz.
  * @note Unused: the NUCLEO-F767ZI has no 32.768 kHz crystal fitted and the
@@ -114,7 +114,7 @@
  *       retained backup-domain state used by the boot contract is held by VDD,
  *       not by an LSE-clocked RTC.
  */
-#define LSE_VALUE    32768U
+#define LSE_VALUE 32768U
 /**
  * @brief LSE ready timeout in milliseconds.
  * @note Unused for the same reason as @ref LSE_VALUE; the LSE is never
@@ -155,7 +155,7 @@
  *       the value must stay in step with the supply documented in
  *       Hardware.md.
  */
-#define VDD_VALUE   3300U
+#define VDD_VALUE 3300U
 /**
  * @brief Priority of the HAL time base interrupt (TIM6), lowest urgency.
  * @details @c HAL_Init() hands this value to the project's @c HAL_InitTick
@@ -354,10 +354,10 @@ void assert_failed(uint8_t *file, uint32_t line);
  * @warning Do not put side effects in @p expr; they would disappear together
  *          with the check.
  */
-#ifdef  USE_FULL_ASSERT
-  #define assert_param(expr) ((expr) ? (void)0U : assert_failed((uint8_t *)__FILE__, __LINE__))
+#ifdef USE_FULL_ASSERT
+#define assert_param(expr) ((expr) ? (void)0U : assert_failed((uint8_t *)__FILE__, __LINE__))
 #else
-  #define assert_param(expr) ((void)0U)
+#define assert_param(expr) ((void)0U)
 #endif
 
 /** @} */

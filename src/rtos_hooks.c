@@ -61,7 +61,8 @@
  */
 static const char *current_task_name(void)
 {
-    if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
+    if(xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
+    {
         return pcTaskGetName(NULL);
     }
     return "startup";
@@ -93,11 +94,7 @@ static const char *current_task_name(void)
  * @see app_fault_fatal
  * @see configASSERT
  */
-void app_fault_assert(const char *file, int line)
-{
-    app_fault_fatal(APP_FAULT_ASSERT, current_task_name(), file,
-                     (uint32_t)line);
-}
+void app_fault_assert(const char *file, int line) { app_fault_fatal(APP_FAULT_ASSERT, current_task_name(), file, (uint32_t)line); }
 
 /**
  * @brief Record a detected task stack overflow and reset (DRT-002).
@@ -162,6 +159,5 @@ void vApplicationMallocFailedHook(void)
 {
     /* Store the free heap in the line field so Status can report how much
      * was left when the allocation failed. */
-    app_fault_fatal(APP_FAULT_MALLOC_FAILED, current_task_name(),
-                    "malloc", (uint32_t)xPortGetFreeHeapSize());
+    app_fault_fatal(APP_FAULT_MALLOC_FAILED, current_task_name(), "malloc", (uint32_t)xPortGetFreeHeapSize());
 }

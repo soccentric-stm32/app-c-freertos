@@ -80,7 +80,7 @@
  */
 
 /** @brief Major protocol version, copied into byte 0 of every frame. */
-#define HWLINK_PROTOCOL_MAJOR     1U
+#define HWLINK_PROTOCOL_MAJOR 1U
 /**
  * @brief Minor protocol version.
  * @details The minor version is not carried in the frame header; it is
@@ -88,10 +88,10 @@
  *          feature negotiation there.  A mismatch in the major version, on the
  *          other hand, makes @ref hwlink_decode_raw reject the frame.
  */
-#define HWLINK_PROTOCOL_MINOR     1U
+#define HWLINK_PROTOCOL_MINOR 1U
 
 /** @brief Largest raw frame in bytes, header, payload and CRC included. */
-#define HWLINK_MAX_FRAME          2048U
+#define HWLINK_MAX_FRAME 2048U
 /**
  * @brief Worst-case COBS-encoded frame size in bytes, delimiter included.
  * @details A frame of @ref HWLINK_MAX_FRAME non-zero bytes needs one code byte
@@ -103,7 +103,7 @@
  *       encoder emits exactly `n / 254 + 1` code bytes; only the delimiter
  *       and that code-byte overhead are added to the size limit.
  */
-#define HWLINK_MAX_ENCODED        (HWLINK_MAX_FRAME + (HWLINK_MAX_FRAME / 254U) + 2U)
+#define HWLINK_MAX_ENCODED (HWLINK_MAX_FRAME + (HWLINK_MAX_FRAME / 254U) + 2U)
 
 /**
  * @brief Frame is a response to an earlier host request.
@@ -112,14 +112,14 @@
  *          @ref HWLINK_FLAG_EVENT set, so the two flags together mark the
  *          direction of a message.
  */
-#define HWLINK_FLAG_RESPONSE      (1U << 0U)
+#define HWLINK_FLAG_RESPONSE (1U << 0U)
 /**
  * @brief Frame is an unsolicited device event.
  * @details Set by the device on ButtonEvent, Log and Progress frames, which
  *          carry sequence number 0 and are not answered.  See
  *          @ref HWLINK_FLAG_RESPONSE for the shared direction rule.
  */
-#define HWLINK_FLAG_EVENT         (1U << 1U)
+#define HWLINK_FLAG_EVENT (1U << 1U)
 
 /**
  * @brief Build an unencoded HWLINK frame.
@@ -159,9 +159,7 @@
  *        @c memcpy.
  * @see hwlink_cobs_encode, hwlink_decode_raw, app_crc32
  */
-bool hwlink_build_raw(const uint8_t *payload, size_t payload_len,
-                      uint8_t flags, uint16_t seq,
-                      uint8_t *raw, size_t raw_capacity, size_t *raw_len);
+bool hwlink_build_raw(const uint8_t *payload, size_t payload_len, uint8_t flags, uint16_t seq, uint8_t *raw, size_t raw_capacity, size_t *raw_len);
 
 /**
  * @brief COBS-encode a raw frame and append the 0x00 delimiter.
@@ -196,8 +194,7 @@ bool hwlink_build_raw(const uint8_t *payload, size_t payload_len,
  *        @ref hwlink_cobs_decode.
  * @see hwlink_cobs_decode, hwlink_build_raw, app_uart3_send
  */
-bool hwlink_cobs_encode(const uint8_t *raw, size_t raw_len,
-                        uint8_t *out, size_t out_capacity, size_t *out_len);
+bool hwlink_cobs_encode(const uint8_t *raw, size_t raw_len, uint8_t *out, size_t out_capacity, size_t *out_len);
 
 /**
  * @brief COBS-decode one frame that has already had its delimiter removed.
@@ -228,8 +225,7 @@ bool hwlink_cobs_encode(const uint8_t *raw, size_t raw_len,
  *        kept from the original API so that -1 and 0 stay distinguishable.
  * @see hwlink_cobs_encode, hwlink_decode_raw
  */
-int hwlink_cobs_decode(const uint8_t *in, size_t in_len,
-                       uint8_t *out, size_t out_capacity, size_t *out_len);
+int hwlink_cobs_decode(const uint8_t *in, size_t in_len, uint8_t *out, size_t out_capacity, size_t *out_len);
 
 /**
  * @brief Validate the header and CRC of a raw frame and return its payload.
@@ -271,9 +267,7 @@ int hwlink_cobs_decode(const uint8_t *in, size_t in_len,
  *        sending a NAK (`LNK-004`).
  * @see hwlink_build_raw, hwlink_cobs_decode, app_crc32
  */
-bool hwlink_decode_raw(const uint8_t *raw, size_t raw_len,
-                       uint8_t *payload, size_t payload_capacity,
-                       size_t *payload_len, uint8_t *flags, uint16_t *seq);
+bool hwlink_decode_raw(const uint8_t *raw, size_t raw_len, uint8_t *payload, size_t payload_capacity, size_t *payload_len, uint8_t *flags, uint16_t *seq);
 
 /** @} */
 

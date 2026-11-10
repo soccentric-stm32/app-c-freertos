@@ -51,7 +51,7 @@
  *          app_fault_save() and cleared first by app_fault_clear(), so it
  *          never marks a partially written record.
  */
-#define APP_FAULT_MAGIC          0x4641554CUL
+#define APP_FAULT_MAGIC 0x4641554CUL
 
 /**
  * @brief Capacity of @ref app_fault_record_t.task in bytes, including the
@@ -59,7 +59,7 @@
  * @details fault_copy() keeps at most @c APP_FAULT_TASK_LEN - 1 = 15
  *          characters, so a longer FreeRTOS task name is truncated.
  */
-#define APP_FAULT_TASK_LEN       16U
+#define APP_FAULT_TASK_LEN 16U
 
 /**
  * @brief Capacity of @ref app_fault_record_t.file in bytes, including the
@@ -67,7 +67,7 @@
  * @details Only the basename of the @c __FILE__ path is kept, at most
  *          @c APP_FAULT_FILE_LEN - 1 = 31 characters.
  */
-#define APP_FAULT_FILE_LEN       32U
+#define APP_FAULT_FILE_LEN 32U
 
 /**
  * @brief Reason recorded in the no-init fault record.
@@ -79,16 +79,17 @@
  *       app_fault_is_valid() accepts only values from @ref APP_FAULT_NONE to
  *       @ref APP_FAULT_STARTUP.
  */
-typedef enum {
-    APP_FAULT_NONE = 0,        /**< No fault recorded; never written by a fatal path. */
-    APP_FAULT_HARDFAULT,       /**< HardFault_Handler, including escalated faults. */
-    APP_FAULT_MEMMANAGE,       /**< MemManage_Handler, normally an MPU violation. */
-    APP_FAULT_BUSFAULT,        /**< BusFault_Handler, normally a bad peripheral access. */
-    APP_FAULT_USAGEFAULT,      /**< UsageFault_Handler, e.g. undefined instruction. */
-    APP_FAULT_ASSERT,          /**< configASSERT failure (DRT-002). */
-    APP_FAULT_STACK_OVERFLOW,  /**< FreeRTOS stack overflow hook (DRT-002). */
-    APP_FAULT_MALLOC_FAILED,   /**< FreeRTOS malloc hook; line holds free bytes. */
-    APP_FAULT_STARTUP          /**< Start-up check failed; task/file name stage. */
+typedef enum
+{
+    APP_FAULT_NONE = 0,       /**< No fault recorded; never written by a fatal path. */
+    APP_FAULT_HARDFAULT,      /**< HardFault_Handler, including escalated faults. */
+    APP_FAULT_MEMMANAGE,      /**< MemManage_Handler, normally an MPU violation. */
+    APP_FAULT_BUSFAULT,       /**< BusFault_Handler, normally a bad peripheral access. */
+    APP_FAULT_USAGEFAULT,     /**< UsageFault_Handler, e.g. undefined instruction. */
+    APP_FAULT_ASSERT,         /**< configASSERT failure (DRT-002). */
+    APP_FAULT_STACK_OVERFLOW, /**< FreeRTOS stack overflow hook (DRT-002). */
+    APP_FAULT_MALLOC_FAILED,  /**< FreeRTOS malloc hook; line holds free bytes. */
+    APP_FAULT_STARTUP         /**< Start-up check failed; task/file name stage. */
 } app_fault_reason_t;
 
 /**
@@ -104,20 +105,21 @@ typedef enum {
  * @warning The object is not initialised at power-on, so every field must be
  *          ignored until app_fault_is_valid() returns true.
  */
-typedef struct {
-    uint32_t magic;                /**< APP_FAULT_MAGIC when valid. */
-    uint32_t reason;               /**< One of @ref app_fault_reason_t. */
-    uint32_t cfsr;                 /**< SCB->CFSR snapshot; 0 for software faults. */
-    uint32_t hfsr;                 /**< SCB->HFSR snapshot; 0 for software faults. */
-    uint32_t mmfar;                /**< SCB->MMFAR snapshot; check MMARVALID. */
-    uint32_t bfar;                 /**< SCB->BFAR snapshot; check BFARVALID. */
-    uint32_t pc;                   /**< Stacked PC at fault; 0 if unavailable. */
-    uint32_t lr;                   /**< Stacked LR at fault; 0 if unavailable. */
-    uint32_t psr;                  /**< Stacked xPSR at fault; 0 if unavailable. */
-    uint32_t line;                 /**< Source line; free heap bytes on malloc fail. */
-    uint32_t boot_id;              /**< Retained boot counter value at save time. */
-    char task[APP_FAULT_TASK_LEN]; /**< Task name, NUL-terminated, may be empty. */
-    char file[APP_FAULT_FILE_LEN]; /**< Source basename, NUL-terminated, may be empty. */
+typedef struct
+{
+    uint32_t magic;                    /**< APP_FAULT_MAGIC when valid. */
+    uint32_t reason;                   /**< One of @ref app_fault_reason_t. */
+    uint32_t cfsr;                     /**< SCB->CFSR snapshot; 0 for software faults. */
+    uint32_t hfsr;                     /**< SCB->HFSR snapshot; 0 for software faults. */
+    uint32_t mmfar;                    /**< SCB->MMFAR snapshot; check MMARVALID. */
+    uint32_t bfar;                     /**< SCB->BFAR snapshot; check BFARVALID. */
+    uint32_t pc;                       /**< Stacked PC at fault; 0 if unavailable. */
+    uint32_t lr;                       /**< Stacked LR at fault; 0 if unavailable. */
+    uint32_t psr;                      /**< Stacked xPSR at fault; 0 if unavailable. */
+    uint32_t line;                     /**< Source line; free heap bytes on malloc fail. */
+    uint32_t boot_id;                  /**< Retained boot counter value at save time. */
+    char     task[APP_FAULT_TASK_LEN]; /**< Task name, NUL-terminated, may be empty. */
+    char     file[APP_FAULT_FILE_LEN]; /**< Source basename, NUL-terminated, may be empty. */
 } app_fault_record_t;
 
 /**
@@ -286,10 +288,7 @@ const char *app_fault_file(void);
  * @see app_fault_fatal
  * @see app_fault_is_valid
  */
-void app_fault_save(app_fault_reason_t reason, uint32_t cfsr, uint32_t hfsr,
-                    uint32_t mmfar, uint32_t bfar, uint32_t pc, uint32_t lr,
-                    uint32_t psr, const char *task, const char *file,
-                    uint32_t line);
+void app_fault_save(app_fault_reason_t reason, uint32_t cfsr, uint32_t hfsr, uint32_t mmfar, uint32_t bfar, uint32_t pc, uint32_t lr, uint32_t psr, const char *task, const char *file, uint32_t line);
 
 /**
  * @brief Show the fault pattern on LD3 for about two seconds and reset.
@@ -336,8 +335,7 @@ void app_fault_show_and_reset(void) __attribute__((noreturn));
  * @see app_fault_save
  * @see app_fault_show_and_reset
  */
-void app_fault_fatal(app_fault_reason_t reason, const char *task,
-                     const char *file, uint32_t line) __attribute__((noreturn));
+void app_fault_fatal(app_fault_reason_t reason, const char *task, const char *file, uint32_t line) __attribute__((noreturn));
 
 /**
  * @brief Invalidate the stored fault record.

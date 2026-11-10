@@ -67,7 +67,7 @@
  *          @ref app_uart3_set_baud when the host asks for the default rate or
  *          when the Comms task reverts after a silent fast-rate session.
  */
-#define APP_UART_DEFAULT_BAUD   115200U
+#define APP_UART_DEFAULT_BAUD 115200U
 
 /**
  * @brief Fast link rate: 921600 baud, 8N1 (COM-001).
@@ -76,7 +76,7 @@
  *          and keeps it while valid frames arrive; the 5 s revert timer lives
  *          in @ref comms_task.c, not in this driver.
  */
-#define APP_UART_FAST_BAUD      921600U
+#define APP_UART_FAST_BAUD 921600U
 
 /**
  * @brief Bring up USART3 and arm the circular DMA receiver.

@@ -71,7 +71,7 @@
  *       Changing it makes the line unreadable for the terminal that captured
  *       the boot messages.
  */
-#define LOG_BAUD          115200U
+#define LOG_BAUD 115200U
 /**
  * @brief Size of the transmit ring in bytes.
  * @details Must stay a power of two: both the producer and the consumer wrap
@@ -80,7 +80,7 @@
  *       counts, so a completely full ring is still distinguishable from an
  *       empty one (see @ref log_push).
  */
-#define LOG_RING_SIZE     1024U
+#define LOG_RING_SIZE 1024U
 /**
  * @brief Size of the stack buffer that one @ref app_log call formats into.
  * @details Two bytes are reserved for CR LF, so at most 126 bytes of prefix
@@ -88,13 +88,13 @@
  * @note The buffer is allocated on the caller's stack on every call, which is
  *       why task stacks in this application are sized with this value in mind.
  */
-#define LOG_LINE_MAX      128U
+#define LOG_LINE_MAX 128U
 /**
  * @brief Fixed tag placed between the tick and the level in every line.
  * @note Part of the line format shared with BOOT (DLOG-001); the terminal
  *       filters on it to tell application lines from bootloader lines.
  */
-#define LOG_TAG           "C-FRT"
+#define LOG_TAG "C-FRT"
 /**
  * @brief NVIC priority of @c USART6_IRQn, the lowest possible urgency.
  * @details Numerically equal to @c configLIBRARY_LOWEST_INTERRUPT_PRIORITY and
@@ -102,7 +102,7 @@
  *          handler is masked by every kernel critical section and by every
  *          other interrupt, and it calls no FreeRTOS API.
  */
-#define LOG_IRQ_PRIORITY  15U
+#define LOG_IRQ_PRIORITY 15U
 
 /**
  * @brief USART6 interrupt handler; drains the transmit ring one byte at a time.
@@ -198,10 +198,7 @@ void app_log_init(void)
     __HAL_RCC_GPIOG_CLK_ENABLE();
     __HAL_RCC_USART6_CLK_ENABLE();
 
-    GPIO_InitTypeDef tx = {
-        .Pin = GPIO_PIN_14, .Mode = GPIO_MODE_AF_PP, .Pull = GPIO_NOPULL,
-        .Speed = GPIO_SPEED_FREQ_MEDIUM, .Alternate = GPIO_AF8_USART6
-    };
+    GPIO_InitTypeDef tx = {.Pin = GPIO_PIN_14, .Mode = GPIO_MODE_AF_PP, .Pull = GPIO_NOPULL, .Speed = GPIO_SPEED_FREQ_MEDIUM, .Alternate = GPIO_AF8_USART6};
     HAL_GPIO_Init(GPIOG, &tx);
 
     USART6->CR1 = 0U;
@@ -256,10 +253,14 @@ static void log_push(const char *text, uint32_t len)
 {
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
-    if (len > LOG_RING_SIZE - (log_head - log_tail)) {
+    if(len > LOG_RING_SIZE - (log_head - log_tail))
+    {
         log_dropped++;
-    } else {
-        for (uint32_t i = 0U; i < len; i++) {
+    }
+    else
+    {
+        for(uint32_t i = 0U; i < len; i++)
+        {
             log_ring[(log_head + i) & (LOG_RING_SIZE - 1U)] = text[i];
         }
         log_head += len;
@@ -275,8 +276,9 @@ static void log_push(const char *text, uint32_t len)
  *          caller's stack buffer.  The object lives on the stack of
  *          @ref app_log for the duration of one line and is never shared.
  */
-typedef struct {
-    char *buf;  /**< Destination buffer; never NUL-terminated by the sink. */
+typedef struct
+{
+    char  *buf; /**< Destination buffer; never NUL-terminated by the sink. */
     size_t len; /**< Characters written so far, also the next write index. */
     size_t cap; /**< Capacity in bytes; writes at or past it are discarded. */
 } log_out_t;
@@ -302,7 +304,8 @@ typedef struct {
  */
 static void out_char(log_out_t *out, char c)
 {
-    if (out->len < out->cap) {
+    if(out->len < out->cap)
+    {
         out->buf[out->len] = c;
         out->len++;
     }
@@ -339,25 +342,28 @@ static void out_char(log_out_t *out, char c)
  *       full and the sink truncates if the line runs out.
  * @see out_char, log_format
  */
-static void out_number(log_out_t *out, uint32_t value, uint32_t base,
-                       bool negative, uint32_t width, char pad)
+static void out_number(log_out_t *out, uint32_t value, uint32_t base, bool negative, uint32_t width, char pad)
 {
-    char digits[11];
+    char     digits[11];
     uint32_t n = 0U;
-    do {
+    do
+    {
         uint32_t d = value % base;
-        digits[n] = (char)(d < 10U ? '0' + d : 'a' + d - 10U);
+        digits[n]  = (char)(d < 10U ? '0' + d : 'a' + d - 10U);
         n++;
         value /= base;
-    } while (value != 0U);
-    if (negative) {
+    } while(value != 0U);
+    if(negative)
+    {
         digits[n] = '-';
         n++;
     }
-    for (uint32_t i = n; i < width; i++) {
+    for(uint32_t i = n; i < width; i++)
+    {
         out_char(out, pad);
     }
-    while (n > 0U) {
+    while(n > 0U)
+    {
         n--;
         out_char(out, digits[n]);
     }
@@ -409,66 +415,67 @@ static void out_number(log_out_t *out, uint32_t value, uint32_t base,
  */
 static void log_format(log_out_t *out, const char *fmt, va_list args)
 {
-    for (; *fmt != '\0'; fmt++) {
-        if (*fmt != '%') {
+    for(; *fmt != '\0'; fmt++)
+    {
+        if(*fmt != '%')
+        {
             out_char(out, *fmt);
             continue;
         }
         fmt++;
         char pad = ' ';
-        if (*fmt == '0') {
+        if(*fmt == '0')
+        {
             pad = '0';
             fmt++;
         }
         uint32_t width = 0U;
-        while (*fmt >= '0' && *fmt <= '9') {
+        while(*fmt >= '0' && *fmt <= '9')
+        {
             width = (width * 10U) + (uint32_t)(*fmt - '0');
             fmt++;
         }
         uint32_t precision = UINT32_MAX;
-        if (*fmt == '.') {
+        if(*fmt == '.')
+        {
             precision = 0U;
             fmt++;
-            while (*fmt >= '0' && *fmt <= '9') {
+            while(*fmt >= '0' && *fmt <= '9')
+            {
                 precision = (precision * 10U) + (uint32_t)(*fmt - '0');
                 fmt++;
             }
         }
-        if (*fmt == 'l') {
-            fmt++;      /* long and int are both 32 bits here */
+        if(*fmt == 'l')
+        {
+            fmt++; /* long and int are both 32 bits here */
         }
-        switch (*fmt) {
-        case 'c':
-            out_char(out, (char)va_arg(args, int));
-            break;
-        case 's': {
+        switch(*fmt)
+        {
+        case 'c': out_char(out, (char)va_arg(args, int)); break;
+        case 's':
+        {
             const char *text = va_arg(args, const char *);
-            for (uint32_t i = 0U; text != NULL && text[i] != '\0' &&
-                                  i < precision; i++) {
+            for(uint32_t i = 0U; text != NULL && text[i] != '\0' && i < precision; i++)
+            {
                 out_char(out, text[i]);
             }
             break;
         }
         case 'd':
-        case 'i': {
+        case 'i':
+        {
             int32_t value = va_arg(args, int32_t);
-            out_number(out, value < 0 ? (uint32_t)(-(value + 1)) + 1U
-                                      : (uint32_t)value,
-                       10U, value < 0, width, pad);
+            out_number(out, value < 0 ? (uint32_t)(-(value + 1)) + 1U : (uint32_t)value, 10U, value < 0, width, pad);
             break;
         }
-        case 'u':
-            out_number(out, va_arg(args, uint32_t), 10U, false, width, pad);
-            break;
-        case 'x':
-            out_number(out, va_arg(args, uint32_t), 16U, false, width, pad);
-            break;
-        case '%':
+        case 'u': out_number(out, va_arg(args, uint32_t), 10U, false, width, pad); break;
+        case 'x': out_number(out, va_arg(args, uint32_t), 16U, false, width, pad); break;
+        case '%': out_char(out, '%'); break;
+        default: /* unsupported: echo it, then stop before later args */
             out_char(out, '%');
-            break;
-        default:        /* unsupported: echo it, then stop before later args */
-            out_char(out, '%');
-            if (*fmt == '\0') {
+            if(*fmt == '\0')
+            {
                 return;
             }
             out_char(out, *fmt);
@@ -548,12 +555,13 @@ static void log_printf(log_out_t *out, const char *fmt, ...)
  */
 void app_log(char level, const char *fmt, ...)
 {
-    if (!log_ready) {
+    if(!log_ready)
+    {
         return;
     }
     char line[LOG_LINE_MAX];
     /* Leave room for CR LF at the end of a truncated line. */
-    log_out_t out = { line, 0U, sizeof(line) - 2U };
+    log_out_t out = {line, 0U, sizeof(line) - 2U};
     log_printf(&out, "[%7lu] " LOG_TAG " %c ", HAL_GetTick(), level);
     va_list args;
     va_start(args, fmt);
@@ -610,20 +618,21 @@ void app_log(char level, const char *fmt, ...)
  */
 void app_log_flush(uint32_t timeout_ms)
 {
-    if (!log_ready) {
+    if(!log_ready)
+    {
         return;
     }
     /* Drain by polling with interrupts off: this also runs from the fault
      * path, where neither the TXE interrupt nor the HAL tick advances.
      * The bound is a loop count for the same reason (about 4 cycles each
      * at 216 MHz). */
-    uint32_t loops = timeout_ms > (UINT32_MAX / 50000U)
-                         ? UINT32_MAX : timeout_ms * 50000U;
+    uint32_t loops   = timeout_ms > (UINT32_MAX / 50000U) ? UINT32_MAX : timeout_ms * 50000U;
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
-    while ((log_head != log_tail || (USART6->ISR & USART_ISR_TC) == 0U) &&
-           loops-- > 0U) {
-        if (log_head != log_tail && (USART6->ISR & USART_ISR_TXE) != 0U) {
+    while((log_head != log_tail || (USART6->ISR & USART_ISR_TC) == 0U) && loops-- > 0U)
+    {
+        if(log_head != log_tail && (USART6->ISR & USART_ISR_TXE) != 0U)
+        {
             USART6->TDR = (uint8_t)log_ring[log_tail & (LOG_RING_SIZE - 1U)];
             log_tail++;
         }
@@ -647,10 +656,7 @@ void app_log_flush(uint32_t timeout_ms)
  *       owns no storage beyond the ring.
  * @see app_log, log_push
  */
-uint32_t app_log_dropped(void)
-{
-    return log_dropped;
-}
+uint32_t app_log_dropped(void) { return log_dropped; }
 
 /**
  * @brief USART6 TXE interrupt: move one byte from the ring to the wire.
@@ -684,13 +690,17 @@ uint32_t app_log_dropped(void)
  */
 void USART6_IRQHandler(void)
 {
-    if ((USART6->ISR & USART_ISR_TXE) == 0U) {
+    if((USART6->ISR & USART_ISR_TXE) == 0U)
+    {
         return;
     }
-    if (log_tail != log_head) {
+    if(log_tail != log_head)
+    {
         USART6->TDR = (uint8_t)log_ring[log_tail & (LOG_RING_SIZE - 1U)];
         log_tail++;
-    } else {
+    }
+    else
+    {
         USART6->CR1 &= ~USART_CR1_TXEIE;
     }
 }

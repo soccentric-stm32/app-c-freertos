@@ -31,14 +31,14 @@
 #include "led_task.h"
 #include "button_task.h"
 
-#define BUTTON_TASK_STACK_WORDS  384U   /**< Stack depth in words, sized for app_log(). */
+#define BUTTON_TASK_STACK_WORDS 384U /**< Stack depth in words, sized for app_log(). */
 
 /**
  * @brief Priority of the Button task.
  * @details One step below the Comms task and two steps below the Health
  *          task, so a press is handled promptly without displacing either.
  */
-#define BUTTON_TASK_PRIORITY     (tskIDLE_PRIORITY + 3U)
+#define BUTTON_TASK_PRIORITY (tskIDLE_PRIORITY + 3U)
 
 /**
  * @brief Debounce interval in milliseconds (30 ms).
@@ -46,21 +46,21 @@
  *          long before it becomes stable.  The comparison uses tick deltas,
  *          so the interval is rounded up to whole 1 ms ticks.
  */
-#define BUTTON_DEBOUNCE_MS       30U
+#define BUTTON_DEBOUNCE_MS 30U
 
 /**
  * @brief Upper bound of a short press in milliseconds, exclusive.
  * @details A release with a debounced duration below 1000 ms posts a short
  *          press request; exactly 1000 ms is no longer short.
  */
-#define BUTTON_SHORT_MAX_MS      1000U
+#define BUTTON_SHORT_MAX_MS 1000U
 
 /**
  * @brief Threshold of a long press in milliseconds, inclusive.
  * @details A press still held at 2000 ms is reported once as a long press
  *          and is not reported again on release.
  */
-#define BUTTON_LONG_MS           2000U
+#define BUTTON_LONG_MS 2000U
 
 /**
  * @brief Health check-in period in milliseconds (500 ms).
@@ -68,7 +68,7 @@
  *          since the previous check-in, keeping it well inside the Health
  *          task's 2 s supervision window.
  */
-#define BUTTON_CHECKIN_MS        500U
+#define BUTTON_CHECKIN_MS 500U
 
 /**
  * @brief Maximum wait between button samples in milliseconds (10 ms).
@@ -76,7 +76,7 @@
  *          the task, so an edge is serviced quickly while the loop still
  *          samples often enough for debounce and long-press timing.
  */
-#define BUTTON_POLL_MS           10U
+#define BUTTON_POLL_MS 10U
 
 /**
  * @brief Handle of the Button task, used by the EXTI13 interrupt handler.
@@ -100,10 +100,7 @@ static TaskHandle_t button_task_handle;
  *       and non-blocking; the interrupt handler does not call it.
  * @see APP_BTN1_PIN
  */
-static bool button_raw(void)
-{
-    return (GPIOC->IDR & APP_BTN1_PIN) != 0U;
-}
+static bool button_raw(void) { return (GPIOC->IDR & APP_BTN1_PIN) != 0U; }
 
 /**
  * @brief Configure B1 as a pulled-down input and arm EXTI13 on both edges.
@@ -134,17 +131,17 @@ static void button_exti_init(void)
     __HAL_RCC_SYSCFG_CLK_ENABLE();
 
     GPIO_InitTypeDef gpio = {0};
-    gpio.Pin  = APP_BTN1_PIN;
-    gpio.Mode = GPIO_MODE_INPUT;
-    gpio.Pull = GPIO_PULLDOWN;   /* B1 is high when pressed */
+    gpio.Pin              = APP_BTN1_PIN;
+    gpio.Mode             = GPIO_MODE_INPUT;
+    gpio.Pull             = GPIO_PULLDOWN; /* B1 is high when pressed */
     HAL_GPIO_Init(APP_BTN1_PORT, &gpio);
 
     /* EXTI13 -> port C (SYSCFG_EXTICR4, field 1). */
     SYSCFG->EXTICR[3] = (SYSCFG->EXTICR[3] & ~(0xFUL << 4U)) | (0x2UL << 4U);
-    EXTI->IMR  |= (1UL << 13U);
+    EXTI->IMR |= (1UL << 13U);
     EXTI->RTSR |= (1UL << 13U);
     EXTI->FTSR |= (1UL << 13U);
-    EXTI->PR    = (1UL << 13U);
+    EXTI->PR = (1UL << 13U);
 
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 6U, 0U);
     HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
@@ -171,9 +168,11 @@ static void button_exti_init(void)
  */
 void EXTI15_10_IRQHandler(void)
 {
-    if ((EXTI->PR & (1UL << 13U)) != 0U) {
+    if((EXTI->PR & (1UL << 13U)) != 0U)
+    {
         EXTI->PR = (1UL << 13U);
-        if (button_task_handle != NULL) {
+        if(button_task_handle != NULL)
+        {
             BaseType_t woken = pdFALSE;
             vTaskNotifyGiveFromISR(button_task_handle, &woken);
             portYIELD_FROM_ISR(woken);
@@ -236,37 +235,47 @@ void EXTI15_10_IRQHandler(void)
 static void button_task(void *arg)
 {
     (void)arg;
-    uint32_t now = xTaskGetTickCount();
-    bool stable = button_raw();
-    bool candidate = stable;
+    uint32_t now             = xTaskGetTickCount();
+    bool     stable          = button_raw();
+    bool     candidate       = stable;
     uint32_t candidate_since = now;
-    uint32_t press_start = now;
-    bool pressed = stable;
-    bool long_sent = false;
-    uint32_t last_checkin = now;
+    uint32_t press_start     = now;
+    bool     pressed         = stable;
+    bool     long_sent       = false;
+    uint32_t last_checkin    = now;
 
-    for (;;) {
+    for(;;)
+    {
         (void)ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(BUTTON_POLL_MS));
-        now = xTaskGetTickCount();
+        now      = xTaskGetTickCount();
         bool raw = button_raw();
 
-        if (raw != candidate) {
-            candidate = raw;
+        if(raw != candidate)
+        {
+            candidate       = raw;
             candidate_since = now;
-        } else if (candidate != stable &&
-                   (now - candidate_since) >= BUTTON_DEBOUNCE_MS) {
+        }
+        else if(candidate != stable && (now - candidate_since) >= BUTTON_DEBOUNCE_MS)
+        {
             stable = candidate;
-            if (stable) {
-                pressed = true;
-                long_sent = false;
+            if(stable)
+            {
+                pressed     = true;
+                long_sent   = false;
                 press_start = now;
-            } else {
+            }
+            else
+            {
                 uint32_t duration = now - press_start;
-                if (pressed && !long_sent) {
-                    if (duration < BUTTON_SHORT_MAX_MS) {
+                if(pressed && !long_sent)
+                {
+                    if(duration < BUTTON_SHORT_MAX_MS)
+                    {
                         LOG_I("button: short press, next LED pattern");
                         (void)led_post_button(1U);
-                    } else if (duration >= BUTTON_LONG_MS) {
+                    }
+                    else if(duration >= BUTTON_LONG_MS)
+                    {
                         (void)led_post_button(2U);
                     }
                 }
@@ -274,14 +283,15 @@ static void button_task(void *arg)
             }
         }
 
-        if (pressed && !long_sent &&
-            (now - press_start) >= BUTTON_LONG_MS) {
+        if(pressed && !long_sent && (now - press_start) >= BUTTON_LONG_MS)
+        {
             long_sent = true;
             LOG_I("button: long press, default LED patterns");
             (void)led_post_button(2U);
         }
 
-        if ((now - last_checkin) >= BUTTON_CHECKIN_MS) {
+        if((now - last_checkin) >= BUTTON_CHECKIN_MS)
+        {
             health_checkin(HEALTH_TASK_BUTTON);
             last_checkin = now;
         }
@@ -318,8 +328,8 @@ static void button_task(void *arg)
  */
 bool button_task_create(void)
 {
-    if (xTaskCreate(button_task, "Button", BUTTON_TASK_STACK_WORDS, NULL,
-                    BUTTON_TASK_PRIORITY, &button_task_handle) != pdPASS) {
+    if(xTaskCreate(button_task, "Button", BUTTON_TASK_STACK_WORDS, NULL, BUTTON_TASK_PRIORITY, &button_task_handle) != pdPASS)
+    {
         return false;
     }
     button_exti_init();

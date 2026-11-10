@@ -95,30 +95,28 @@ void app_handover_read(void)
      * write corrupt BOOT's trial counter or the RTC. */
     uint32_t raw = RTC->BKP2R;
 
-    g_handover.raw = raw;
-    g_handover.present = (raw & APP_HANDOVER_MAGIC_MASK) ==
-                         APP_HANDOVER_MAGIC;
-    if (!g_handover.present) {
-        g_handover.slot = APP_SLOT_UNKNOWN;
-        g_handover.trial = 0U;
+    g_handover.raw     = raw;
+    g_handover.present = (raw & APP_HANDOVER_MAGIC_MASK) == APP_HANDOVER_MAGIC;
+    if(!g_handover.present)
+    {
+        g_handover.slot        = APP_SLOT_UNKNOWN;
+        g_handover.trial       = 0U;
         g_handover.trial_count = 0U;
         return;
     }
 
-    g_handover.slot = (uint8_t)((raw >> APP_HANDOVER_SLOT_SHIFT) &
-                                APP_HANDOVER_SLOT_MASK);
-    if (g_handover.slot != APP_SLOT_A && g_handover.slot != APP_SLOT_B) {
-        g_handover.slot = APP_SLOT_UNKNOWN;
-        g_handover.present = false;
-        g_handover.trial = 0U;
+    g_handover.slot = (uint8_t)((raw >> APP_HANDOVER_SLOT_SHIFT) & APP_HANDOVER_SLOT_MASK);
+    if(g_handover.slot != APP_SLOT_A && g_handover.slot != APP_SLOT_B)
+    {
+        g_handover.slot        = APP_SLOT_UNKNOWN;
+        g_handover.present     = false;
+        g_handover.trial       = 0U;
         g_handover.trial_count = 0U;
         return;
     }
 
-    g_handover.trial = ((raw >> APP_HANDOVER_PENDING_BIT) & 1U) != 0U
-                       ? 2U : 1U;
-    g_handover.trial_count = (uint8_t)((raw >> APP_HANDOVER_TRIAL_SHIFT) &
-                                       APP_HANDOVER_TRIAL_MASK);
+    g_handover.trial       = ((raw >> APP_HANDOVER_PENDING_BIT) & 1U) != 0U ? 2U : 1U;
+    g_handover.trial_count = (uint8_t)((raw >> APP_HANDOVER_TRIAL_SHIFT) & APP_HANDOVER_TRIAL_MASK);
 }
 
 /**

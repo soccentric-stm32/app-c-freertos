@@ -99,11 +99,12 @@
  *        tracked in the extra table slot indexed by @ref HEALTH_TASK_COUNT,
  *        which is why that value doubles as the table length.
  */
-typedef enum {
-    HEALTH_TASK_LED = 0,   /**< LED task; checks in on its LD3 refresh cycle. */
-    HEALTH_TASK_BUTTON,    /**< Button task; checks in from its polling loop. */
-    HEALTH_TASK_COMMS,     /**< Comms task; checks in from its UART3 loop. */
-    HEALTH_TASK_COUNT      /**< Number of supervised tasks; not a valid id. */
+typedef enum
+{
+    HEALTH_TASK_LED = 0, /**< LED task; checks in on its LD3 refresh cycle. */
+    HEALTH_TASK_BUTTON,  /**< Button task; checks in from its polling loop. */
+    HEALTH_TASK_COMMS,   /**< Comms task; checks in from its UART3 loop. */
+    HEALTH_TASK_COUNT    /**< Number of supervised tasks; not a valid id. */
 } health_task_id_t;
 
 /**

@@ -77,7 +77,7 @@
  *       banks, so this is the only link address the application needs.
  * @see APP_SLOT_SIZE
  */
-#define APP_SLOT_BASE           0x0800C000UL
+#define APP_SLOT_BASE 0x0800C000UL
 /**
  * @brief Size of the application slot in bytes: 976 KB (`DBT-001`).
  * @details `0x000F4000` (999424 bytes), covering `0x0800C000`..`0x080FFFFF`.
@@ -86,7 +86,7 @@
  * @note The build fails if the image, including the `.data` load image,
  *       exceeds this size; see `__app_image_end` in `ld/app.ld`.
  */
-#define APP_SLOT_SIZE           0x000F4000UL   /* 976 KB */
+#define APP_SLOT_SIZE 0x000F4000UL /* 976 KB */
 
 /**
  * @brief Size of one flash bank in bytes: 1 MB.
@@ -96,7 +96,7 @@
  * @see APP_META_OFFSET
  * @see APP_SLOT_BASE
  */
-#define APP_BANK_SIZE           0x00100000UL
+#define APP_BANK_SIZE 0x00100000UL
 /**
  * @brief Offset of the metadata area from the bank base (`0x8000`).
  * @details 32 KB into the bank, which is the start of the 16 KB metadata
@@ -104,7 +104,7 @@
  *          the BOOT region and the slot so records can be erased separately.
  * @see APP_META_SIZE
  */
-#define APP_META_OFFSET         0x00008000UL
+#define APP_META_OFFSET 0x00008000UL
 /**
  * @brief Size of the metadata area in bytes: 16 KB (`0x4000`).
  * @details Exactly one dual-bank flash sector, covering
@@ -113,7 +113,7 @@
  * @note The size matches the hardware sector so BOOT's erase granularity is
  *       one metadata sector.
  */
-#define APP_META_SIZE           0x00004000UL
+#define APP_META_SIZE 0x00004000UL
 
 /**
  * @brief Physical metadata address in bank 1: `0x08008000` (`0x08000000` +
@@ -124,7 +124,7 @@
  *          `0x08000000`.
  * @see APP_META_B_ADDR
  */
-#define APP_META_A_ADDR         0x08008000UL
+#define APP_META_A_ADDR 0x08008000UL
 /**
  * @brief Physical metadata address in bank 2: `0x08108000` (`0x08100000` +
  *        @ref APP_META_OFFSET).
@@ -132,7 +132,7 @@
  *          without a bank swap.
  * @see APP_META_A_ADDR
  */
-#define APP_META_B_ADDR         0x08108000UL
+#define APP_META_B_ADDR 0x08108000UL
 
 /**
  * @brief Metadata alias that is valid while the application runs.
@@ -143,7 +143,7 @@
  *          @ref APP_META_A_ADDR or @ref APP_META_B_ADDR instead.
  * @see APP_CONFIRMED_ADDR
  */
-#define APP_RUNNING_META_ADDR   0x08008000UL
+#define APP_RUNNING_META_ADDR 0x08008000UL
 
 /** @} */
 
@@ -172,13 +172,13 @@
  * @details The header belongs to BOOT; DEMO never reads or writes it and does
  *          not depend on its contents.
  */
-#define APP_META_HEADER_OFFSET    0x000U
+#define APP_META_HEADER_OFFSET 0x000U
 /**
  * @brief Offset of the VERIFIED record (`0x100`).
  * @details Programmed and consumed by BOOT.  DEMO does not interpret it; it
  *          only relies on BOOT having accepted the image before the jump.
  */
-#define APP_META_VERIFIED_OFFSET  0x100U
+#define APP_META_VERIFIED_OFFSET 0x100U
 /**
  * @brief Offset of the ACTIVATED record (`0x120`), `0x100` + one record.
  * @details Part of BOOT's trial/activation state machine; DEMO never writes
@@ -197,7 +197,7 @@
  * @brief Offset of the REJECTED record (`0x160`), `0x140` + one record.
  * @details Part of BOOT's rollback bookkeeping; DEMO never writes it.
  */
-#define APP_META_REJECTED_OFFSET  0x160U
+#define APP_META_REJECTED_OFFSET 0x160U
 /**
  * @brief Size of one metadata record in bytes: 32 (`0x20`).
  * @details Also the spacing between consecutive record offsets.
@@ -206,7 +206,7 @@
  *       28 bytes.  An all-`0xFF` record means "absent"; a torn record is
  *       never overwritten.
  */
-#define APP_META_RECORD_SIZE      32U
+#define APP_META_RECORD_SIZE 32U
 
 /**
  * @brief VERIFIED magic: `0x56455249`.
@@ -216,26 +216,26 @@
  *       addresses are `49 52 45 56`, i.e. "IREV".  The contract requires BOOT
  *       to use the same 32-bit constant.
  */
-#define APP_META_VERIFIED_MAGIC   0x56455249UL  /* "VERI" */
+#define APP_META_VERIFIED_MAGIC 0x56455249UL /* "VERI" */
 /**
  * @brief ACTIVATED magic: `0x41435456`.
  * @details ASCII spelling of the constant, most significant byte first, is
  *          "ACTV"; in little-endian flash the bytes read "VTCA".
  */
-#define APP_META_ACTIVATED_MAGIC  0x41435456UL  /* "ACTV" */
+#define APP_META_ACTIVATED_MAGIC 0x41435456UL /* "ACTV" */
 /**
  * @brief CONFIRMED magic: `0x434F4E46`.
  * @details ASCII spelling of the constant, most significant byte first, is
  *          "CONF"; in little-endian flash the bytes read "FNOC".  This is the
  *          magic checked by `flash_confirm.c` before it trusts the CRC.
  */
-#define APP_META_CONFIRMED_MAGIC  0x434F4E46UL  /* "CONF" */
+#define APP_META_CONFIRMED_MAGIC 0x434F4E46UL /* "CONF" */
 /**
  * @brief REJECTED magic: `0x52454A45`.
  * @details ASCII spelling of the constant, most significant byte first, is
  *          "REJE"; in little-endian flash the bytes read "EJER".
  */
-#define APP_META_REJECTED_MAGIC   0x52454A45UL  /* "REJE" */
+#define APP_META_REJECTED_MAGIC 0x52454A45UL /* "REJE" */
 
 /**
  * @brief Absolute address of the running slot's CONFIRMED record:
@@ -251,8 +251,7 @@
  *          offset from the application; both would destroy BOOT state.
  * @see APP_META_RECORD_SIZE
  */
-#define APP_CONFIRMED_ADDR \
-    (APP_RUNNING_META_ADDR + APP_META_CONFIRMED_OFFSET)
+#define APP_CONFIRMED_ADDR (APP_RUNNING_META_ADDR + APP_META_CONFIRMED_OFFSET)
 
 /** @} */
 
@@ -288,41 +287,41 @@
  *          with @ref APP_HANDOVER_MAGIC_MASK, because the upper byte carries
  *          the slot and trial state.
  */
-#define APP_HANDOVER_MAGIC        0x00444E48UL  /* bytes "HND", 0 */
+#define APP_HANDOVER_MAGIC 0x00444E48UL /* bytes "HND", 0 */
 /**
  * @brief Mask selecting the 24 magic bits of `RTC_BKP2R` (`0x00FFFFFF`).
  * @details The record is considered present only when
  *          `(raw & APP_HANDOVER_MAGIC_MASK) == APP_HANDOVER_MAGIC`.
  */
-#define APP_HANDOVER_MAGIC_MASK   0x00FFFFFFUL
+#define APP_HANDOVER_MAGIC_MASK 0x00FFFFFFUL
 /**
  * @brief Right shift of the slot field: 24.
  * @details Combined with @ref APP_HANDOVER_SLOT_MASK to extract bits 24..25.
  */
-#define APP_HANDOVER_SLOT_SHIFT   24U
+#define APP_HANDOVER_SLOT_SHIFT 24U
 /**
  * @brief Width mask of the slot field: `0x3` (bits 24..25).
  * @details Valid decoded values are @ref APP_SLOT_A and @ref APP_SLOT_B; 0
  *          and 3 are both reported as @ref APP_SLOT_UNKNOWN.
  */
-#define APP_HANDOVER_SLOT_MASK    0x3UL
+#define APP_HANDOVER_SLOT_MASK 0x3UL
 /**
  * @brief Bit position of the "trial pending" flag: 26.
  * @details 1 means BOOT booted the slot on trial; 0 means it is confirmed.
  *          `app_handover_read()` maps 1 to trial state 2 and 0 to state 1.
  */
-#define APP_HANDOVER_PENDING_BIT  26U
+#define APP_HANDOVER_PENDING_BIT 26U
 /**
  * @brief Right shift of the trial counter: 27.
  * @details Combined with @ref APP_HANDOVER_TRIAL_MASK to extract bits 27..28.
  */
-#define APP_HANDOVER_TRIAL_SHIFT  27U
+#define APP_HANDOVER_TRIAL_SHIFT 27U
 /**
  * @brief Width mask of the trial counter: `0x3` (bits 27..28, values 0..3).
  * @details Maintained by BOOT as part of trial boot; DEMO only reports it in
  *          `Status`.
  */
-#define APP_HANDOVER_TRIAL_MASK   0x3UL
+#define APP_HANDOVER_TRIAL_MASK 0x3UL
 
 /** @} */
 
@@ -343,7 +342,7 @@
  * @warning Only set this immediately before resetting; leaving the magic in
  *          place may keep the board in BOOT on the next reset as well.
  */
-#define APP_STAY_IN_BOOT_MAGIC    0x59415453UL  /* bytes "STAY" */
+#define APP_STAY_IN_BOOT_MAGIC 0x59415453UL /* bytes "STAY" */
 
 /** @} */
 
@@ -370,20 +369,20 @@
  *          This is also the initial main stack pointer (`_estack`), so the
  *          stack grows downward, away from the window.
  */
-#define APP_NOINIT_ADDR           0x2001FC00UL
+#define APP_NOINIT_ADDR 0x2001FC00UL
 /**
  * @brief Size of the reserved no-init window in bytes: 1 KB (`0x400`).
  * @details Holds `g_app_fault` plus the file-scope boot id, both placed in
  *          `.noinit`; the start-up code clears only `.bss`.
  */
-#define APP_NOINIT_SIZE           0x00000400UL
+#define APP_NOINIT_SIZE 0x00000400UL
 /**
  * @brief Exclusive end of the no-init window: `0x20020000`, which is also the
  *        first byte of SRAM1.
  * @details Equals @ref APP_NOINIT_ADDR + @ref APP_NOINIT_SIZE.  The window is
  *          half-open, `[APP_NOINIT_ADDR, APP_NOINIT_END)`.
  */
-#define APP_NOINIT_END            0x20020000UL
+#define APP_NOINIT_END 0x20020000UL
 
 /** @} */
 
@@ -397,11 +396,11 @@
  */
 
 /** No hand-over record, or an unusable slot value (`DBT-004`). */
-#define APP_SLOT_UNKNOWN          0U
+#define APP_SLOT_UNKNOWN 0U
 /** Slot A (hand-over slot field value 1). */
-#define APP_SLOT_A                1U
+#define APP_SLOT_A 1U
 /** Slot B (hand-over slot field value 2). */
-#define APP_SLOT_B                2U
+#define APP_SLOT_B 2U
 
 /** @} */
 

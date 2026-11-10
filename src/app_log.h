@@ -129,8 +129,7 @@ void app_log_init(void);
  *          order between contexts is not defined.
  * @see LOG_E, LOG_W, LOG_I, LOG_D, app_log_flush, app_log_dropped
  */
-void app_log(char level, const char *fmt, ...)
-    __attribute__((format(printf, 2, 3)));
+void app_log(char level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 /**
  * @brief Wait until the queued characters have left the wire.

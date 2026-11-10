@@ -10,13 +10,13 @@
 #
 ---
 Language:        Cpp
-BasedOnStyle:    LLVM
+BasedOnStyle:    Microsoft
 
 # Layout
 IndentWidth:     4
 TabWidth:        4
 UseTab:          Never
-ColumnLimit:     90
+ColumnLimit:     300
 
 # Braces: opening brace on its own line (Allman)
 BreakBeforeBraces: Allman

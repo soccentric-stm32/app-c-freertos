@@ -65,10 +65,7 @@
  * @see     app_fault_fatal, app_fault_show_and_reset
  */
 static void clock_fail(void) __attribute__((noreturn));
-static void clock_fail(void)
-{
-    app_fault_fatal(APP_FAULT_STARTUP, "clock", "HSE/PLL/over-drive", 0U);
-}
+static void clock_fail(void) { app_fault_fatal(APP_FAULT_STARTUP, "clock", "HSE/PLL/over-drive", 0U); }
 
 /**
  * @brief   Program PWR, HSE, the main PLL, over-drive, the bus prescalers and
@@ -176,19 +173,20 @@ void app_clock_init(void)
     /* HSE bypass and main PLL.  Every field is written explicitly because BOOT
      * owns the reset state (DBT-003). */
     RCC_OscInitTypeDef osc = {0};
-    osc.OscillatorType      = RCC_OSCILLATORTYPE_HSE;
-    osc.HSEState            = RCC_HSE_BYPASS; /* ST-LINK MCO 8 MHz (DCON-005) */
-    osc.HSIState            = RCC_HSI_OFF;
-    osc.PLL.PLLState        = RCC_PLL_ON;
-    osc.PLL.PLLSource       = RCC_PLLSOURCE_HSE;
-    osc.PLL.PLLM            = 8;              /* VCO in: 1 MHz               */
-    osc.PLL.PLLN            = 432;            /* VCO: 432 MHz                */
-    osc.PLL.PLLP            = RCC_PLLP_DIV2;  /* SYSCLK: 216 MHz             */
-    osc.PLL.PLLQ            = 9;              /* PLLQ: 48 MHz                */
+    osc.OscillatorType     = RCC_OSCILLATORTYPE_HSE;
+    osc.HSEState           = RCC_HSE_BYPASS; /* ST-LINK MCO 8 MHz (DCON-005) */
+    osc.HSIState           = RCC_HSI_OFF;
+    osc.PLL.PLLState       = RCC_PLL_ON;
+    osc.PLL.PLLSource      = RCC_PLLSOURCE_HSE;
+    osc.PLL.PLLM           = 8;             /* VCO in: 1 MHz               */
+    osc.PLL.PLLN           = 432;           /* VCO: 432 MHz                */
+    osc.PLL.PLLP           = RCC_PLLP_DIV2; /* SYSCLK: 216 MHz             */
+    osc.PLL.PLLQ           = 9;             /* PLLQ: 48 MHz                */
 
     /* HSE missing (no ST-LINK MCO) or the PLL did not lock; the tree cannot
      * be reached, so latch the start-up fault and reset. */
-    if (HAL_RCC_OscConfig(&osc) != HAL_OK) {
+    if(HAL_RCC_OscConfig(&osc) != HAL_OK)
+    {
         clock_fail();
     }
 
@@ -196,24 +194,25 @@ void app_clock_init(void)
      * active before SYSCLK passes 180 MHz, so it is enabled now, while the core
      * still runs from the 16 MHz HSI; the HAL polls ODRDY and ODSWRDY and
      * reports HAL_TIMEOUT when the regulator does not switch. */
-    if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
+    if(HAL_PWREx_EnableOverDrive() != HAL_OK)
+    {
         clock_fail();
     }
 
     /* SYSCLK source, AHB divider and both APB dividers are programmed by one
      * call, so no intermediate tree is ever clocked. */
     RCC_ClkInitTypeDef clk = {0};
-    clk.ClockType      = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
-                         RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
-    clk.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
-    clk.AHBCLKDivider  = RCC_SYSCLK_DIV1;      /* HCLK 216 MHz           */
-    clk.APB1CLKDivider = APP_APB1_PRESCALER;   /* 54 MHz, timers 108 MHz */
-    clk.APB2CLKDivider = APP_APB2_PRESCALER;   /* 108 MHz, timers 216 MHz */
+    clk.ClockType          = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    clk.SYSCLKSource       = RCC_SYSCLKSOURCE_PLLCLK;
+    clk.AHBCLKDivider      = RCC_SYSCLK_DIV1;    /* HCLK 216 MHz           */
+    clk.APB1CLKDivider     = APP_APB1_PRESCALER; /* 54 MHz, timers 108 MHz */
+    clk.APB2CLKDivider     = APP_APB2_PRESCALER; /* 108 MHz, timers 216 MHz */
 
     /* HAL_RCC_ClockConfig() raises the latency to 7 wait states first, then
      * switches SYSCLK to PLLCLK and applies the dividers; it also re-runs
      * HAL_InitTick() so TIM6 is rescaled to the new PCLK1 (DGEN-006). */
-    if (HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_7) != HAL_OK) {
+    if(HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_7) != HAL_OK)
+    {
         clock_fail();
     }
 

@@ -75,7 +75,7 @@
  *       depend on this value; the public interface in @ref uart3.h does not
  *       expose it.
  */
-#define UART_RX_RING_SIZE       4096U
+#define UART_RX_RING_SIZE 4096U
 /**
  * @brief Nominal budget for one DMA frame on the wire, in milliseconds.
  * @details Expresses the driver's default transmit timeout, matching the value
@@ -87,7 +87,7 @@
  *       expanded anywhere; it records the intended budget rather than enforcing
  *       it.
  */
-#define UART_TX_TIMEOUT_MS      200U
+#define UART_TX_TIMEOUT_MS 200U
 
 /**
  * @brief USART3 HAL handle, owned by this file.
@@ -120,8 +120,7 @@ static DMA_HandleTypeDef hdma_usart3_tx;
  *          reader then sees stale bytes; the ring must never be moved out of
  *          @c .dma_buffer.
  */
-static uint8_t uart_rx_ring[UART_RX_RING_SIZE]
-    __attribute__((section(".dma_buffer"), aligned(32)));
+static uint8_t uart_rx_ring[UART_RX_RING_SIZE] __attribute__((section(".dma_buffer"), aligned(32)));
 /**
  * @brief Ring offset of the next byte the consumer will read.
  * @details Always in the range 0..UART_RX_RING_SIZE-1.  Advanced by
@@ -138,7 +137,7 @@ static uint32_t uart_rx_read;
  *          @ref app_uart3_rx_read, so the unread backlog is simply the
  *          difference and no wrap-around comparison is needed.
  */
-static uint32_t uart_rx_consumed;   /* total bytes consumed since arming */
+static uint32_t uart_rx_consumed; /* total bytes consumed since arming */
 /**
  * @brief Number of completed full-ring DMA transfers since arming.
  * @details Volatile because @ref HAL_UART_RxCpltCallback increments it in
@@ -201,7 +200,7 @@ static void uart_gpio_init(void)
     GPIO_InitTypeDef gpio = {0};
 
     __HAL_RCC_GPIOD_CLK_ENABLE();
-    gpio.Pin       = GPIO_PIN_8 | GPIO_PIN_9;   /* PD8 TX, PD9 RX */
+    gpio.Pin       = GPIO_PIN_8 | GPIO_PIN_9; /* PD8 TX, PD9 RX */
     gpio.Mode      = GPIO_MODE_AF_PP;
     gpio.Pull      = GPIO_PULLUP;
     gpio.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -327,7 +326,8 @@ static void uart_dma_init(void)
  */
 void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 {
-    if (huart->Instance != USART3) {
+    if(huart->Instance != USART3)
+    {
         return;
     }
 
@@ -369,11 +369,11 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
  */
 static bool uart_start_receiver(void)
 {
-    uart_rx_read = 0U;
+    uart_rx_read     = 0U;
     uart_rx_consumed = 0U;
-    uart_rx_wraps = 0U;
-    if (HAL_UART_Receive_DMA(&huart3, uart_rx_ring, UART_RX_RING_SIZE) !=
-        HAL_OK) {
+    uart_rx_wraps    = 0U;
+    if(HAL_UART_Receive_DMA(&huart3, uart_rx_ring, UART_RX_RING_SIZE) != HAL_OK)
+    {
         return false;
     }
     __HAL_UART_ENABLE_IT(&huart3, UART_IT_ERR);
@@ -421,7 +421,8 @@ bool app_uart3_init(void)
     huart3.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
     huart3.Init.OverSampling = UART_OVERSAMPLING_16;
 
-    if (HAL_UART_Init(&huart3) != HAL_OK) {
+    if(HAL_UART_Init(&huart3) != HAL_OK)
+    {
         return false;
     }
     uart_baud = APP_UART_DEFAULT_BAUD;
@@ -475,10 +476,12 @@ bool app_uart3_init(void)
  */
 bool app_uart3_set_baud(uint32_t baud)
 {
-    if (baud != APP_UART_DEFAULT_BAUD && baud != APP_UART_FAST_BAUD) {
+    if(baud != APP_UART_DEFAULT_BAUD && baud != APP_UART_FAST_BAUD)
+    {
         return false;
     }
-    if (baud == uart_baud) {
+    if(baud == uart_baud)
+    {
         return true;
     }
 
@@ -487,12 +490,14 @@ bool app_uart3_set_baud(uint32_t baud)
     (void)HAL_UART_DeInit(&huart3);
 
     huart3.Init.BaudRate = baud;
-    bool ok = HAL_UART_Init(&huart3) == HAL_OK && uart_start_receiver();
-    if (!ok) {
+    bool ok              = HAL_UART_Init(&huart3) == HAL_OK && uart_start_receiver();
+    if(!ok)
+    {
         /* Get back to the previous rate. */
         (void)HAL_UART_DeInit(&huart3);
         huart3.Init.BaudRate = old_baud;
-        if (HAL_UART_Init(&huart3) == HAL_OK) {
+        if(HAL_UART_Init(&huart3) == HAL_OK)
+        {
             (void)uart_start_receiver();
         }
         return false;
@@ -515,10 +520,7 @@ bool app_uart3_set_baud(uint32_t baud)
  *       @ref app_uart3_set_baud runs concurrently.
  * @see app_uart3_set_baud
  */
-uint32_t app_uart3_baud(void)
-{
-    return uart_baud;
-}
+uint32_t app_uart3_baud(void) { return uart_baud; }
 
 /**
  * @brief Copy unread bytes out of the circular DMA ring.
@@ -592,43 +594,49 @@ uint32_t app_uart3_rx_read(uint8_t *dst, uint32_t max_len)
      * completion between the two reads increments uart_rx_wraps and reloads the
      * counter; retrying then keeps the pair consistent instead of advancing
      * "produced" by a whole ring. */
-    uint32_t wraps = 0U;
+    uint32_t wraps   = 0U;
     uint32_t counter = 0U;
-    do {
-        wraps = uart_rx_wraps;
+    do
+    {
+        wraps   = uart_rx_wraps;
         counter = __HAL_DMA_GET_COUNTER(&hdma_usart3_rx);
-    } while (wraps != uart_rx_wraps);
+    } while(wraps != uart_rx_wraps);
 
-    uint32_t head = (UART_RX_RING_SIZE - counter) % UART_RX_RING_SIZE;
+    uint32_t head     = (UART_RX_RING_SIZE - counter) % UART_RX_RING_SIZE;
     uint32_t produced = (wraps * UART_RX_RING_SIZE) + head;
 
     uint32_t delta = produced - uart_rx_consumed;
-    if (delta == 0U || max_len == 0U) {
+    if(delta == 0U || max_len == 0U)
+    {
         return 0U;
     }
-    if (delta > (0xFFFFFFFFUL - UART_RX_RING_SIZE)) {
+    if(delta > (0xFFFFFFFFUL - UART_RX_RING_SIZE))
+    {
         /* The DMA counter reloaded before the completion callback published the
          * wrap increment.  Defer to the next call instead of mistaking the
          * backwards difference for a lap and discarding the ring. */
         return 0U;
     }
-    if (delta > UART_RX_RING_SIZE) {
+    if(delta > UART_RX_RING_SIZE)
+    {
         /* The DMA lapped the reader: bytes were overwritten.  Resync at the
          * write position instead of returning out-of-order data. */
-        uart_rx_read = head;
+        uart_rx_read     = head;
         uart_rx_consumed = produced;
         return 0U;
     }
 
     uint32_t count = delta;
-    if (count > max_len) {
-        count = max_len;
+    if(count > max_len)
+    {
+        count    = max_len;
         produced = uart_rx_consumed + count;
     }
-    for (uint32_t i = 0U; i < count; i++) {
+    for(uint32_t i = 0U; i < count; i++)
+    {
         dst[i] = uart_rx_ring[(uart_rx_read + i) % UART_RX_RING_SIZE];
     }
-    uart_rx_read = (uart_rx_read + count) % UART_RX_RING_SIZE;
+    uart_rx_read     = (uart_rx_read + count) % UART_RX_RING_SIZE;
     uart_rx_consumed = produced;
     return count;
 }
@@ -651,12 +659,7 @@ uint32_t app_uart3_rx_read(uint8_t *dst, uint32_t max_len)
  *       invalidated.
  * @see app_uart3_rx_restart, app_uart3_init
  */
-bool app_uart3_rx_running(void)
-{
-    return huart3.RxState == HAL_UART_STATE_BUSY_RX &&
-           hdma_usart3_rx.State == HAL_DMA_STATE_BUSY &&
-           (USART3->CR1 & USART_CR1_RE) != 0U;
-}
+bool app_uart3_rx_running(void) { return huart3.RxState == HAL_UART_STATE_BUSY_RX && hdma_usart3_rx.State == HAL_DMA_STATE_BUSY && (USART3->CR1 & USART_CR1_RE) != 0U; }
 
 /**
  * @brief Clear the receive error flags, unwind what is left and re-arm the ring.
@@ -691,14 +694,14 @@ bool app_uart3_rx_running(void)
  */
 bool app_uart3_rx_restart(void)
 {
-    if (app_uart3_rx_running()) {
+    if(app_uart3_rx_running())
+    {
         return true;
     }
     /* A DMA transfer error or an overrun can leave the HAL receive state
      * and both DMA streams idle.  Clear the flags, abort what is left and
      * arm the ring again so HWLINK comes back without a reset. */
-    USART3->ICR = USART_ICR_ORECF | USART_ICR_FECF | USART_ICR_NCF |
-                  USART_ICR_PECF | USART_ICR_IDLECF;
+    USART3->ICR = USART_ICR_ORECF | USART_ICR_FECF | USART_ICR_NCF | USART_ICR_PECF | USART_ICR_IDLECF;
     (void)HAL_UART_AbortReceive(&huart3);
     return uart_start_receiver();
 }
@@ -758,19 +761,22 @@ bool app_uart3_rx_restart(void)
  */
 bool app_uart3_send(const uint8_t *data, uint16_t len, uint32_t timeout_ms)
 {
-    if (len == 0U || data == NULL) {
+    if(len == 0U || data == NULL)
+    {
         return true;
     }
 
     uart_tx_task = xTaskGetCurrentTaskHandle();
-    (void)ulTaskNotifyTake(pdTRUE, 0U);   /* drop a stale completion */
+    (void)ulTaskNotifyTake(pdTRUE, 0U); /* drop a stale completion */
 
-    if (HAL_UART_Transmit_DMA(&huart3, (uint8_t *)data, len) != HAL_OK) {
+    if(HAL_UART_Transmit_DMA(&huart3, (uint8_t *)data, len) != HAL_OK)
+    {
         uart_tx_task = NULL;
         return false;
     }
 
-    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(timeout_ms)) == 0U) {
+    if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(timeout_ms)) == 0U)
+    {
         (void)HAL_UART_AbortTransmit(&huart3);
         uart_tx_task = NULL;
         return false;
@@ -779,8 +785,10 @@ bool app_uart3_send(const uint8_t *data, uint16_t len, uint32_t timeout_ms)
     /* DBT-005: wait until the last character has left the shift register,
      * not just until the DMA has written it to USART3->DR. */
     uint32_t start = HAL_GetTick();
-    while ((USART3->ISR & USART_ISR_TC) == 0U) {
-        if ((HAL_GetTick() - start) > 10U) {
+    while((USART3->ISR & USART_ISR_TC) == 0U)
+    {
+        if((HAL_GetTick() - start) > 10U)
+        {
             break;
         }
     }
@@ -810,7 +818,8 @@ bool app_uart3_send(const uint8_t *data, uint16_t len, uint32_t timeout_ms)
  */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    if (huart->Instance == USART3) {
+    if(huart->Instance == USART3)
+    {
         uart_rx_wraps++;
         comms_post_rx_from_isr();
     }
@@ -833,7 +842,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
  */
 void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
 {
-    if (huart->Instance == USART3) {
+    if(huart->Instance == USART3)
+    {
         comms_post_rx_from_isr();
     }
 }
@@ -859,7 +869,8 @@ void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
  */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-    if (huart->Instance != USART3 || uart_tx_task == NULL) {
+    if(huart->Instance != USART3 || uart_tx_task == NULL)
+    {
         return;
     }
 
@@ -887,7 +898,8 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
  */
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-    if (huart->Instance == USART3) {
+    if(huart->Instance == USART3)
+    {
         comms_post_rx_from_isr();
     }
 }
@@ -927,17 +939,17 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
  */
 void USART3_IRQHandler(void)
 {
-    uint32_t sr = USART3->ISR;
-    bool wake = false;
+    uint32_t sr   = USART3->ISR;
+    bool     wake = false;
 
     /* Receive errors are cleared here instead of through the HAL, because
      * HAL_UART_IRQHandler() aborts the circular DMA receiver on an overrun.
      * Clear through ICR only: reading RDR while the DMA receiver is active
      * would steal a valid byte from the ring (RM0410 30.6.9). */
-    if ((sr & (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE | USART_ISR_PE)) != 0U) {
-        USART3->ICR = USART_ICR_ORECF | USART_ICR_FECF |
-                      USART_ICR_NCF | USART_ICR_PECF;
-        wake = true;
+    if((sr & (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE | USART_ISR_PE)) != 0U)
+    {
+        USART3->ICR = USART_ICR_ORECF | USART_ICR_FECF | USART_ICR_NCF | USART_ICR_PECF;
+        wake        = true;
     }
 
     /* Transmit complete: the HAL disables TCIE, returns the handle to READY
@@ -946,16 +958,18 @@ void USART3_IRQHandler(void)
      * to call the HAL now because the error flags above are already cleared;
      * leaving the TCC flag set lets app_uart3_send() wait for the last stop
      * bit (DBT-005). */
-    if (((sr & USART_ISR_TC) != 0U) &&
-        ((USART3->CR1 & USART_CR1_TCIE) != 0U)) {
+    if(((sr & USART_ISR_TC) != 0U) && ((USART3->CR1 & USART_CR1_TCIE) != 0U))
+    {
         HAL_UART_IRQHandler(&huart3);
     }
 
-    if ((USART3->ISR & USART_ISR_IDLE) != 0U) {
+    if((USART3->ISR & USART_ISR_IDLE) != 0U)
+    {
         USART3->ICR = USART_ICR_IDLECF;
-        wake = true;
+        wake        = true;
     }
-    if (wake) {
+    if(wake)
+    {
         comms_post_rx_from_isr();
     }
 }
@@ -971,10 +985,7 @@ void USART3_IRQHandler(void)
  *       @ref uart_dma_init programs (DRT-003).
  * @see HAL_UART_RxCpltCallback, HAL_UART_RxHalfCpltCallback, uart_dma_init
  */
-void DMA1_Stream1_IRQHandler(void)
-{
-    HAL_DMA_IRQHandler(&hdma_usart3_rx);
-}
+void DMA1_Stream1_IRQHandler(void) { HAL_DMA_IRQHandler(&hdma_usart3_rx); }
 
 /**
  * @brief DMA1 Stream3 interrupt: transmit stream events.
@@ -987,7 +998,4 @@ void DMA1_Stream1_IRQHandler(void)
  * @note Interrupt context at pre-emption priority 6 (DRT-003).
  * @see app_uart3_send, HAL_UART_TxCpltCallback, uart_dma_init
  */
-void DMA1_Stream3_IRQHandler(void)
-{
-    HAL_DMA_IRQHandler(&hdma_usart3_tx);
-}
+void DMA1_Stream3_IRQHandler(void) { HAL_DMA_IRQHandler(&hdma_usart3_tx); }

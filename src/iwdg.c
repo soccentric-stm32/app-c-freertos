@@ -85,7 +85,7 @@
  *       upper half of the constant is zero by definition.
  * @see IWDG_RELOAD_4S
  */
-#define IWDG_KEY_ACCESS       0x00005555UL
+#define IWDG_KEY_ACCESS 0x00005555UL
 
 /**
  * @brief Reload value that produces the nominal 4.0 s timeout.
@@ -104,7 +104,7 @@
  * @see IWDG_KEY_ACCESS
  * @see app_iwdg_init
  */
-#define IWDG_RELOAD_4S        1999U
+#define IWDG_RELOAD_4S 1999U
 
 /**
  * @brief Bound on the LSI-ready and IWDG update-flag polls.
@@ -116,7 +116,7 @@
  * @see iwdg_start_lsi
  * @see iwdg_wait_ready
  */
-#define IWDG_WAIT_LOOPS       1000000UL
+#define IWDG_WAIT_LOOPS 1000000UL
 
 /**
  * @brief Start the LSI and wait, with a bound, for it to become ready.
@@ -144,8 +144,10 @@
 static void iwdg_start_lsi(void)
 {
     RCC->CSR |= RCC_CSR_LSION;
-    for (uint32_t i = 0U; i < IWDG_WAIT_LOOPS; i++) {
-        if ((RCC->CSR & RCC_CSR_LSIRDY) != 0U) {
+    for(uint32_t i = 0U; i < IWDG_WAIT_LOOPS; i++)
+    {
+        if((RCC->CSR & RCC_CSR_LSIRDY) != 0U)
+        {
             return;
         }
     }
@@ -184,8 +186,10 @@ static void iwdg_start_lsi(void)
  */
 static void iwdg_wait_ready(void)
 {
-    for (uint32_t i = 0U; i < IWDG_WAIT_LOOPS; i++) {
-        if ((IWDG->SR & (IWDG_SR_PVU | IWDG_SR_RVU | IWDG_SR_WVU)) == 0U) {
+    for(uint32_t i = 0U; i < IWDG_WAIT_LOOPS; i++)
+    {
+        if((IWDG->SR & (IWDG_SR_PVU | IWDG_SR_RVU | IWDG_SR_WVU)) == 0U)
+        {
             return;
         }
     }
@@ -222,10 +226,7 @@ static void iwdg_wait_ready(void)
  * @see app_iwdg_init
  * @see app_iwdg_kick
  */
-void app_iwdg_early_kick(void)
-{
-    IWDG->KR = IWDG_KEY_RELOAD;
-}
+void app_iwdg_early_kick(void) { IWDG->KR = IWDG_KEY_RELOAD; }
 
 /**
  * @brief Start the IWDG at 4 s if BOOT did not, then refresh it once.
@@ -285,13 +286,14 @@ void app_iwdg_init(void)
      * a previous stage) has already configured and started the watchdog. */
     bool running = (IWDG->PR != 0U) || (IWDG->RLR != 0x0FFFU);
 
-    if (!running) {
-        iwdg_start_lsi();           /* update flags need a running LSI */
-        IWDG->KR = IWDG_KEY_ENABLE;
-        IWDG->KR = IWDG_KEY_ACCESS; /* open write access to PR and RLR */
-        IWDG->PR = IWDG_PRESCALER_64;
+    if(!running)
+    {
+        iwdg_start_lsi(); /* update flags need a running LSI */
+        IWDG->KR  = IWDG_KEY_ENABLE;
+        IWDG->KR  = IWDG_KEY_ACCESS; /* open write access to PR and RLR */
+        IWDG->PR  = IWDG_PRESCALER_64;
         IWDG->RLR = IWDG_RELOAD_4S;
-        iwdg_wait_ready();          /* bounded: PR/RLR visible for reload */
+        iwdg_wait_ready(); /* bounded: PR/RLR visible for reload */
         IWDG->KR = IWDG_KEY_RELOAD;
     }
 
@@ -327,7 +329,4 @@ void app_iwdg_init(void)
  * @see health_task.c
  * @see app_iwdg_init
  */
-void app_iwdg_kick(void)
-{
-    IWDG->KR = IWDG_KEY_RELOAD;
-}
+void app_iwdg_kick(void) { IWDG->KR = IWDG_KEY_RELOAD; }

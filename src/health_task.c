@@ -74,7 +74,7 @@
  * @note The watermark is not checked at run time; it can only be inspected
  *       with @c uxTaskGetStackHighWaterMark while debugging.
  */
-#define HEALTH_TASK_STACK_WORDS  384U
+#define HEALTH_TASK_STACK_WORDS 384U
 /**
  * @brief Health task priority: @c tskIDLE_PRIORITY + 5, highest in the set.
  * @details Above Comms (+4), Button (+3) and LED (+2), so the supervision loop
@@ -82,7 +82,7 @@
  *          cannot be starved (`DRT-010`, `DRT-012`).  Valid because
  *          @c configMAX_PRIORITIES is 8 and @c configUSE_PREEMPTION is 1.
  */
-#define HEALTH_TASK_PRIORITY     (tskIDLE_PRIORITY + 5U)
+#define HEALTH_TASK_PRIORITY (tskIDLE_PRIORITY + 5U)
 /**
  * @brief Blocking period of one supervision loop iteration, in ms: 20.
  * @details Passed through @c pdMS_TO_TICKS to @c xTaskNotifyWait, so the task
@@ -91,7 +91,7 @@
  *          deadline and of the 5 s to 10 s trial window; it does not set the
  *          watchdog cadence, which is @ref HEALTH_REFRESH_MS.
  */
-#define HEALTH_LOOP_MS           20U
+#define HEALTH_LOOP_MS 20U
 /**
  * @brief Silence after which a supervised task is dead, in ms: 2000.
  * @details Compared against a tick difference of @ref last_seen, which is only
@@ -111,7 +111,7 @@
  *          every loop iteration from this point, so a condition that becomes
  *          true later still passes.
  */
-#define HEALTH_CHECK_AT_MS       5000U
+#define HEALTH_CHECK_AT_MS 5000U
 /**
  * @brief Deadline that closes the trial and stops the watchdog, in ms: 10000.
  * @details Measured from @ref start_tick and used twice: the health check fails
@@ -121,7 +121,7 @@
  *          14 s after start-up rather than by a direct reset request
  *          (`HLT-003`, `HLT-004`).
  */
-#define HEALTH_STOP_KICK_MS      10000U
+#define HEALTH_STOP_KICK_MS 10000U
 /**
  * @brief Watchdog refresh period while supervision holds, in ms: 100.
  * @details The loop reloads the IWDG when at least this long has passed since
@@ -132,7 +132,7 @@
  * @note Like the other periods this is compared against raw ticks, so it is
  *       100 ms only at the configured 1 kHz tick rate.
  */
-#define HEALTH_REFRESH_MS        100U
+#define HEALTH_REFRESH_MS 100U
 /**
  * @brief Minimum check-ins per accounting slot for a passing trial: 5.
  * @details One per second of the five-second window (`DRT-012`).  Notification
@@ -142,7 +142,7 @@
  *          on every iteration and therefore exceeds the threshold long before
  *          5 s, as long as the task is running at all.
  */
-#define HEALTH_MIN_CHECKINS      5U
+#define HEALTH_MIN_CHECKINS 5U
 /**
  * @brief Free heap required at the 5 s evaluation, in bytes: 4096.
  * @details Read with @c xPortGetFreeHeapSize, which heap_4 answers from its
@@ -151,7 +151,7 @@
  *          reservation: with the default 24 KiB arena the check fails once
  *          more than about 20 KiB is in use (`DRT-012`, `HLT-001`).
  */
-#define HEALTH_MIN_FREE_HEAP     4096U
+#define HEALTH_MIN_FREE_HEAP 4096U
 
 /**
  * @brief No pending slot asked for a check, so no check will run: 0.
@@ -167,21 +167,21 @@
  *          @c trial == 2, that is a slot BOOT started on trial.  It stays until
  *          @ref health_check_pass or @ref health_check_fail reaches a verdict.
  */
-#define HEALTH_STATE_RUNNING      1U
+#define HEALTH_STATE_RUNNING 1U
 /**
  * @brief The trial check passed and the CONFIRMED record is in flash: 2.
  * @details Set by @ref health_check_pass after
  *          @ref app_flash_confirm_running_slot returned true.  The state is
  *          final for the boot; the watchdog feed continues normally.
  */
-#define HEALTH_STATE_PASSED       2U
+#define HEALTH_STATE_PASSED 2U
 /**
  * @brief The trial check failed: 3.  LD3 blinks fast and the trial rolls back.
  * @details Set by @ref health_check_fail.  Feeding continues until
  *          @ref HEALTH_STOP_KICK_MS and then stops, so the IWDG resets the
  *          board and BOOT can reject the slot (`HLT-003`, `HLT-004`).
  */
-#define HEALTH_STATE_FAILED       3U
+#define HEALTH_STATE_FAILED 3U
 
 /**
  * @brief Handle of the Health task and the check-in notification target.
@@ -291,8 +291,10 @@ static bool supervision_lost;
  */
 static void checkin_account(uint32_t bits, uint32_t now)
 {
-    for (uint32_t i = 0U; i < HEALTH_TASK_COUNT; i++) {
-        if ((bits & (1UL << i)) != 0U) {
+    for(uint32_t i = 0U; i < HEALTH_TASK_COUNT; i++)
+    {
+        if((bits & (1UL << i)) != 0U)
+        {
             checkin_count[i]++;
             last_seen[i] = now;
         }
@@ -330,11 +332,14 @@ static void checkin_account(uint32_t bits, uint32_t now)
  */
 static void supervise(uint32_t now)
 {
-    if (supervision_lost) {
+    if(supervision_lost)
+    {
         return;
     }
-    for (uint32_t i = 0U; i < (HEALTH_TASK_COUNT + 1U); i++) {
-        if ((now - last_seen[i]) > HEALTH_CHECKIN_TIMEOUT_MS) {
+    for(uint32_t i = 0U; i < (HEALTH_TASK_COUNT + 1U); i++)
+    {
+        if((now - last_seen[i]) > HEALTH_CHECKIN_TIMEOUT_MS)
+        {
             supervision_lost = true;
             return;
         }
@@ -381,21 +386,26 @@ static bool health_conditions_met(void)
 #ifdef DEMO_FAIL_HEALTH
     return false;
 #else
-    for (uint32_t i = 0U; i < (HEALTH_TASK_COUNT + 1U); i++) {
-        if (checkin_count[i] < HEALTH_MIN_CHECKINS) {
+    for(uint32_t i = 0U; i < (HEALTH_TASK_COUNT + 1U); i++)
+    {
+        if(checkin_count[i] < HEALTH_MIN_CHECKINS)
+        {
             return false;
         }
     }
-    if (app_fault_is_current_boot()) {
+    if(app_fault_is_current_boot())
+    {
         return false;
     }
     /* A fault in the previous trial boot is a failed trial; an older fault
      * from before the update is only reported in Status.  BOOT increments
      * the trial counter each time it starts a pending slot. */
-    if (g_handover.trial_count > 1U && app_fault_is_previous_boot()) {
+    if(g_handover.trial_count > 1U && app_fault_is_previous_boot())
+    {
         return false;
     }
-    if (xPortGetFreeHeapSize() < HEALTH_MIN_FREE_HEAP) {
+    if(xPortGetFreeHeapSize() < HEALTH_MIN_FREE_HEAP)
+    {
         return false;
     }
     return app_uart3_rx_running();
@@ -424,7 +434,7 @@ static bool health_conditions_met(void)
  */
 static void health_check_fail(void)
 {
-    check_done = true;
+    check_done   = true;
     health_state = HEALTH_STATE_FAILED;
     app_error_set(APP_ERROR_HEALTH);
     (void)led_post_health_failed();
@@ -447,7 +457,7 @@ static void health_check_fail(void)
  */
 static void health_check_pass(void)
 {
-    check_done = true;
+    check_done   = true;
     health_state = HEALTH_STATE_PASSED;
 }
 
@@ -512,38 +522,44 @@ static void health_task(void *arg)
 {
     (void)arg;
     uint32_t now = xTaskGetTickCount();
-    start_tick = now;
-    last_kick = now;
-    for (uint32_t i = 0U; i < (HEALTH_TASK_COUNT + 1U); i++) {
-        last_seen[i] = now;
+    start_tick   = now;
+    last_kick    = now;
+    for(uint32_t i = 0U; i < (HEALTH_TASK_COUNT + 1U); i++)
+    {
+        last_seen[i]     = now;
         checkin_count[i] = 0U;
     }
 
     bool pending = g_handover.present && g_handover.trial == 2U;
     health_state = pending ? HEALTH_STATE_RUNNING : HEALTH_STATE_NOT_REQUIRED;
-    if (pending) {
+    if(pending)
+    {
         LOG_I("health: on trial, check in %u ms", (unsigned)HEALTH_CHECK_AT_MS);
     }
 
-    for (;;) {
+    for(;;)
+    {
         uint32_t bits = 0U;
-        (void)xTaskNotifyWait(0U, 0xFFFFFFFFUL, &bits,
-                              pdMS_TO_TICKS(HEALTH_LOOP_MS));
+        (void)xTaskNotifyWait(0U, 0xFFFFFFFFUL, &bits, pdMS_TO_TICKS(HEALTH_LOOP_MS));
         now = xTaskGetTickCount();
         checkin_account(bits, now);
         supervise(now);
 
-        if (pending && !check_done &&
-            (now - start_tick) >= HEALTH_CHECK_AT_MS) {
+        if(pending && !check_done && (now - start_tick) >= HEALTH_CHECK_AT_MS)
+        {
             /* The trial window closes at HEALTH_STOP_KICK_MS.  Check the
              * deadline before the conditions, so a check that only becomes
              * true after the window cannot still confirm the slot. */
-            if ((now - start_tick) >= HEALTH_STOP_KICK_MS) {
+            if((now - start_tick) >= HEALTH_STOP_KICK_MS)
+            {
                 health_check_fail();
                 LOG_E("health: conditions not met, stopping the watchdog "
                       "kick (trial fails)");
-            } else if (health_conditions_met()) {
-                if (app_flash_confirm_running_slot()) {
+            }
+            else if(health_conditions_met())
+            {
+                if(app_flash_confirm_running_slot())
+                {
                     /* The CONFIRMED record is in flash, so the slot is no
                      * longer on trial.  g_handover was decoded once at
                      * start-up; update it so Status reports CONFIRMED.  A
@@ -551,7 +567,9 @@ static void health_task(void *arg)
                     g_handover.trial = 1U;
                     health_check_pass();
                     LOG_I("health: passed, CONFIRMED written");
-                } else {
+                }
+                else
+                {
                     health_check_fail();
                     LOG_E("health: CONFIRMED record write failed");
                 }
@@ -559,12 +577,13 @@ static void health_task(void *arg)
         }
 
         bool kick = !supervision_lost;
-        if (health_state == HEALTH_STATE_FAILED &&
-            (now - start_tick) >= HEALTH_STOP_KICK_MS) {
+        if(health_state == HEALTH_STATE_FAILED && (now - start_tick) >= HEALTH_STOP_KICK_MS)
+        {
             kick = false;
         }
 
-        if (kick && (now - last_kick) >= HEALTH_REFRESH_MS) {
+        if(kick && (now - last_kick) >= HEALTH_REFRESH_MS)
+        {
             app_iwdg_kick();
             last_kick = now;
         }
@@ -595,11 +614,7 @@ static void health_task(void *arg)
  *       nothing refreshes the watchdog.
  * @see health_checkin
  */
-bool health_task_create(void)
-{
-    return xTaskCreate(health_task, "Health", HEALTH_TASK_STACK_WORDS, NULL,
-                       HEALTH_TASK_PRIORITY, &health_task_handle) == pdPASS;
-}
+bool health_task_create(void) { return xTaskCreate(health_task, "Health", HEALTH_TASK_STACK_WORDS, NULL, HEALTH_TASK_PRIORITY, &health_task_handle) == pdPASS; }
 
 /**
  * @brief Report that a supervised task is alive.
@@ -629,8 +644,8 @@ bool health_task_create(void)
  */
 void health_checkin(health_task_id_t task)
 {
-    if (health_task_handle == NULL ||
-        (uint32_t)task >= (uint32_t)HEALTH_TASK_COUNT) {
+    if(health_task_handle == NULL || (uint32_t)task >= (uint32_t)HEALTH_TASK_COUNT)
+    {
         return;
     }
     (void)xTaskNotify(health_task_handle, 1UL << (uint32_t)task, eSetBits);
@@ -653,10 +668,7 @@ void health_checkin(health_task_id_t task)
  * @see health_is_failed
  * @see health_state
  */
-uint8_t health_state_get(void)
-{
-    return health_state;
-}
+uint8_t health_state_get(void) { return health_state; }
 
 /**
  * @brief Test whether the trial health check has failed.
@@ -675,7 +687,4 @@ uint8_t health_state_get(void)
  *       comparison and is kept for future consumers.
  * @see health_state_get
  */
-bool health_is_failed(void)
-{
-    return health_state == HEALTH_STATE_FAILED;
-}
+bool health_is_failed(void) { return health_state == HEALTH_STATE_FAILED; }

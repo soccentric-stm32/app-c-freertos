@@ -115,11 +115,11 @@
  */
 static bool record_valid(const volatile uint32_t *record)
 {
-    if (record[0] != APP_META_CONFIRMED_MAGIC) {
+    if(record[0] != APP_META_CONFIRMED_MAGIC)
+    {
         return false;
     }
-    return app_crc32((const void *)record, APP_META_RECORD_SIZE - 4U) ==
-           record[CONFIRMED_WORDS - 1U];
+    return app_crc32((const void *)record, APP_META_RECORD_SIZE - 4U) == record[CONFIRMED_WORDS - 1U];
 }
 
 /**
@@ -149,8 +149,10 @@ static bool record_valid(const volatile uint32_t *record)
  */
 static bool record_erased(const volatile uint32_t *record)
 {
-    for (uint32_t i = 0U; i < CONFIRMED_WORDS; i++) {
-        if (record[i] != 0xFFFFFFFFUL) {
+    for(uint32_t i = 0U; i < CONFIRMED_WORDS; i++)
+    {
+        if(record[i] != 0xFFFFFFFFUL)
+        {
             return false;
         }
     }
@@ -248,8 +250,8 @@ bool app_flash_confirm_running_slot(void)
     /* DSAFE-002: the helper has no caller-supplied address.  The address is
      * the CONFIRMED record of the running slot under the BOOT bank swap, so
      * the write can neither be redirected nor aimed at another slot. */
-    const uint32_t address = APP_CONFIRMED_ADDR;
-    volatile uint32_t *record = (volatile uint32_t *)address;
+    const uint32_t     address = APP_CONFIRMED_ADDR;
+    volatile uint32_t *record  = (volatile uint32_t *)address;
 
     /* The metadata sector may be cached by the D-cache, because flash keeps
      * the default cacheable attributes (the MPU only remaps the SRAM2 DMA
@@ -260,13 +262,15 @@ bool app_flash_confirm_running_slot(void)
 
     /* Idempotent path: a record that already verifies is left untouched and
      * flash is never unlocked. */
-    if (record_valid(record)) {
+    if(record_valid(record))
+    {
         return true;
     }
     /* Torn path: the record is no longer erased but does not verify either,
      * so it is the remains of an interrupted write.  Report failure and leave
      * it for BOOT instead of overwriting it. */
-    if (!record_erased(record)) {
+    if(!record_erased(record))
+    {
         return false;
     }
 
@@ -274,14 +278,15 @@ bool app_flash_confirm_running_slot(void)
      * flash: word 0 magic, words 1..6 zero, last word the CRC over those 28
      * bytes. */
     uint32_t words[CONFIRMED_WORDS];
-    for (uint32_t i = 0U; i < CONFIRMED_WORDS; i++) {
+    for(uint32_t i = 0U; i < CONFIRMED_WORDS; i++)
+    {
         words[i] = 0U;
     }
-    words[0] = APP_META_CONFIRMED_MAGIC;
-    words[CONFIRMED_WORDS - 1U] =
-        app_crc32((const void *)words, APP_META_RECORD_SIZE - 4U);
+    words[0]                    = APP_META_CONFIRMED_MAGIC;
+    words[CONFIRMED_WORDS - 1U] = app_crc32((const void *)words, APP_META_RECORD_SIZE - 4U);
 
-    if (HAL_FLASH_Unlock() != HAL_OK) {
+    if(HAL_FLASH_Unlock() != HAL_OK)
+    {
         return false;
     }
     /* Drop any status left by an earlier operation, so it cannot abort the
@@ -289,18 +294,19 @@ bool app_flash_confirm_running_slot(void)
     __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_ALL_ERRORS);
 
     bool ok = true;
-    for (uint32_t i = 0U; i < CONFIRMED_WORDS; i++) {
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, address + (i * 4U),
-                              words[i]) != HAL_OK) {
+    for(uint32_t i = 0U; i < CONFIRMED_WORDS; i++)
+    {
+        if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, address + (i * 4U), words[i]) != HAL_OK)
+        {
             ok = false;
             break;
         }
         /* The program went through the flash controller, not the D-cache, so
          * invalidate again before reading the word back; otherwise this check
          * could compare the RAM copy against a cached copy of erased flash. */
-        SCB_InvalidateDCache_by_Addr((uint32_t *)address,
-                                     APP_META_RECORD_SIZE);
-        if (*(volatile uint32_t *)(address + (i * 4U)) != words[i]) {
+        SCB_InvalidateDCache_by_Addr((uint32_t *)address, APP_META_RECORD_SIZE);
+        if(*(volatile uint32_t *)(address + (i * 4U)) != words[i])
+        {
             ok = false;
             break;
         }

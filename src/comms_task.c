@@ -112,21 +112,21 @@
 #endif
 
 /** @brief Comms task stack in words: 1536 words, that is 6 KiB. */
-#define COMMS_TASK_STACK_WORDS   1536U
+#define COMMS_TASK_STACK_WORDS 1536U
 /**
  * @brief Comms task priority, @c tskIDLE_PRIORITY + 4.
  * @details Above the LED (2) and button (3) tasks so that received traffic is
  *          serviced promptly, and below the Health task (5) so that the
  *          watchdog feed is never delayed by protocol work.
  */
-#define COMMS_TASK_PRIORITY      (tskIDLE_PRIORITY + 4U)
+#define COMMS_TASK_PRIORITY (tskIDLE_PRIORITY + 4U)
 /**
  * @brief Depth of the RX-hint queue, in @ref comms_event_t entries.
  * @details RX hints only; ButtonEvents use @ref COMMS_BUTTON_QUEUE_LEN on a
  *          separate queue so that they never compete with RX traffic
  *          (BTN-004, LED-006).
  */
-#define COMMS_EVENT_QUEUE_LEN    16U
+#define COMMS_EVENT_QUEUE_LEN 16U
 /**
  * @brief Depth of the dedicated ButtonEvent queue, in @ref comms_event_t
  *        entries.
@@ -136,35 +136,35 @@
  *          LED-006); a full queue drops the event instead of stalling the
  *          producer.
  */
-#define COMMS_BUTTON_QUEUE_LEN   4U
+#define COMMS_BUTTON_QUEUE_LEN 4U
 /**
  * @brief Maximum time the task blocks for an event, in milliseconds.
  * @details Bounds the worst-case request latency and also the 5 s baud-revert
  *          resolution, because both are only evaluated once per loop.
  */
-#define COMMS_LOOP_MS            10U
+#define COMMS_LOOP_MS 10U
 /** @brief Health check-in period, in milliseconds (HLT-001). */
-#define COMMS_CHECKIN_MS         500U
+#define COMMS_CHECKIN_MS 500U
 /**
  * @brief Transmit timeout handed to @ref app_uart3_send, in milliseconds.
  * @details A full 2048-byte frame needs about 178 ms of line time at 115200
  *          baud, so a shorter timeout would abort the largest legal reply.
  */
-#define COMMS_TX_TIMEOUT_MS      200U
+#define COMMS_TX_TIMEOUT_MS 200U
 /**
  * @brief Grace period after a baud change before reverting, in milliseconds.
  * @details The revert is a safety net for a host that asked for the fast rate
  *          and then stopped talking; a single valid frame at the new rate
  *          cancels it (COM-001).  See @ref handle_raw.
  */
-#define COMMS_BAUD_REVERT_MS     5000U
+#define COMMS_BAUD_REVERT_MS 5000U
 /**
  * @brief Capacity of the task-status snapshot used by @c Status.
  * @details The application creates four tasks (LED, button, Comms, health), so
  *          the array has room to spare once the idle and timer tasks are added.
  *          See @ref send_status for the behaviour above this limit.
  */
-#define COMMS_MAX_TASK_STATS     12U
+#define COMMS_MAX_TASK_STATS 12U
 
 /**
  * @brief Kind of work item carried by a @ref comms_event_t.
@@ -173,9 +173,10 @@
  *          @ref comms_queue) and @ref comms_post_button_event (from the LED
  *          task, into @ref button_queue).
  */
-typedef enum {
-    COMMS_EVT_RX = 0,   /**< "Bytes may be waiting in the DMA ring." */
-    COMMS_EVT_BUTTON    /**< B1 was pressed; report and mirror it. */
+typedef enum
+{
+    COMMS_EVT_RX = 0, /**< "Bytes may be waiting in the DMA ring." */
+    COMMS_EVT_BUTTON  /**< B1 was pressed; report and mirror it. */
 } comms_event_type_t;
 
 /**
@@ -188,11 +189,12 @@ typedef enum {
  * @note The queue copies the structure by value, so the consumer always owns
  *       its own copy and the producer may reuse its stack object.
  */
-typedef struct {
-    uint8_t type;       /**< One of @ref comms_event_type_t. */
-    uint8_t press;      /**< Button: 1 short, 2 long (@c ButtonPress). */
-    uint8_t pattern;    /**< Button: @c APP_PATTERN_* selected by the press. */
-    uint16_t period;    /**< Button: pattern period in milliseconds. */
+typedef struct
+{
+    uint8_t  type;    /**< One of @ref comms_event_type_t. */
+    uint8_t  press;   /**< Button: 1 short, 2 long (@c ButtonPress). */
+    uint8_t  pattern; /**< Button: @c APP_PATTERN_* selected by the press. */
+    uint16_t period;  /**< Button: pattern period in milliseconds. */
 } comms_event_t;
 
 /**
@@ -204,9 +206,10 @@ typedef struct {
  *       is not mirrored, because @ref handle_set_led mirrors only after
  *       @c led_post_set succeeded.
  */
-typedef struct {
-    uint8_t pattern;    /**< One of @c APP_PATTERN_* (0 to APP_PATTERN_COUNT-1). */
-    uint16_t period;    /**< Pattern period in milliseconds. */
+typedef struct
+{
+    uint8_t  pattern; /**< One of @c APP_PATTERN_* (0 to APP_PATTERN_COUNT-1). */
+    uint16_t period;  /**< Pattern period in milliseconds. */
 } led_mirror_t;
 
 /**
@@ -298,8 +301,7 @@ static bool last_request_valid;
  * @warning Anything written here is read asynchronously by the DMA until
  *          @ref app_uart3_send returns; do not reuse it for other purposes.
  */
-static uint8_t tx_frame[HWLINK_MAX_ENCODED]
-    __attribute__((section(".dma_buffer"), aligned(32)));
+static uint8_t tx_frame[HWLINK_MAX_ENCODED] __attribute__((section(".dma_buffer"), aligned(32)));
 
 /**
  * @brief Last requested state of LD1, LD2 and LD3, in that order.
@@ -308,11 +310,7 @@ static uint8_t tx_frame[HWLINK_MAX_ENCODED]
  *          pattern so that a @c Status reply before the first @c SetLed is
  *          still correct.
  */
-static led_mirror_t led_mirror[3] = {
-    { APP_PATTERN_HEARTBEAT, APP_LED_DEFAULT_PERIOD },
-    { APP_PATTERN_OFF,       APP_LED_DEFAULT_PERIOD },
-    { APP_PATTERN_OFF,       APP_LED_DEFAULT_PERIOD }
-};
+static led_mirror_t led_mirror[3] = {{APP_PATTERN_HEARTBEAT, APP_LED_DEFAULT_PERIOD}, {APP_PATTERN_OFF, APP_LED_DEFAULT_PERIOD}, {APP_PATTERN_OFF, APP_LED_DEFAULT_PERIOD}};
 
 /**
  * @brief Whether a @c Hello has been received since reset.
@@ -345,10 +343,7 @@ static uint32_t baud_last_valid;
  *         must neither free nor modify it.
  * @note Task or start-up context; the call has no side effects.
  */
-static const char *firmware_name(void)
-{
-    return APP_FIRMWARE_NAME;
-}
+static const char *firmware_name(void) { return APP_FIRMWARE_NAME; }
 
 /**
  * @brief Assemble the device unique ID into a 64-bit value.
@@ -361,10 +356,7 @@ static const char *firmware_name(void)
  * @note Task context.  The HAL accessors read read-only system registers, so
  *       the call needs no locking and cannot block.
  */
-static uint64_t device_uid(void)
-{
-    return ((uint64_t)HAL_GetUIDw0() << 32U) | (uint64_t)HAL_GetUIDw1();
-}
+static uint64_t device_uid(void) { return ((uint64_t)HAL_GetUIDw0() << 32U) | (uint64_t)HAL_GetUIDw1(); }
 
 /**
  * @brief Map the flash bank option bit to the protocol @c FlashMode.
@@ -379,11 +371,7 @@ static uint64_t device_uid(void)
  * @note Task context.  The option register is read-only here; the call performs
  *       no unlock sequence and no flash access with side effects.
  */
-static hwlink_FlashMode_enum_t flash_mode(void)
-{
-    return (FLASH->OPTCR & FLASH_OPTCR_nDBANK) != 0U
-           ? hwlink_FlashMode_SINGLE_BANK : hwlink_FlashMode_DUAL_BANK;
-}
+static hwlink_FlashMode_enum_t flash_mode(void) { return (FLASH->OPTCR & FLASH_OPTCR_nDBANK) != 0U ? hwlink_FlashMode_SINGLE_BANK : hwlink_FlashMode_DUAL_BANK; }
 
 /**
  * @brief Discard the partially assembled receive body.
@@ -397,7 +385,7 @@ static hwlink_FlashMode_enum_t flash_mode(void)
  */
 static void reset_parser(void)
 {
-    rx_enc_len = 0U;
+    rx_enc_len      = 0U;
     rx_enc_overflow = false;
 }
 
@@ -439,30 +427,30 @@ static void reset_parser(void)
  *          recent response is replayable.
  * @see hwlink_build_raw, hwlink_cobs_encode, app_uart3_send
  */
-static bool send_payload(const uint8_t *payload, size_t payload_len,
-                         uint8_t flags, uint16_t seq, bool store)
+static bool send_payload(const uint8_t *payload, size_t payload_len, uint8_t flags, uint16_t seq, bool store)
 {
-    size_t raw_len = 0U;
+    size_t raw_len     = 0U;
     size_t encoded_len = 0U;
 
-    if (!hwlink_build_raw(payload, payload_len, flags, seq,
-                          raw_tx, sizeof(raw_tx), &raw_len)) {
+    if(!hwlink_build_raw(payload, payload_len, flags, seq, raw_tx, sizeof(raw_tx), &raw_len))
+    {
         return false;
     }
 
-    if (!hwlink_cobs_encode(raw_tx, raw_len, tx_frame, sizeof(tx_frame),
-                            &encoded_len)) {
+    if(!hwlink_cobs_encode(raw_tx, raw_len, tx_frame, sizeof(tx_frame), &encoded_len))
+    {
         return false;
     }
-    if (!app_uart3_send(tx_frame, (uint16_t)encoded_len,
-                        COMMS_TX_TIMEOUT_MS)) {
+    if(!app_uart3_send(tx_frame, (uint16_t)encoded_len, COMMS_TX_TIMEOUT_MS))
+    {
         return false;
     }
 
     /* Cache only after the frame is on the wire.  Caching first meant a
      * failed SetLed/Reset/EnterBootloader Ack was replayed to the host's
      * retry without running the request. */
-    if (store && raw_len <= sizeof(last_response)) {
+    if(store && raw_len <= sizeof(last_response))
+    {
         memcpy(last_response, raw_tx, raw_len);
         last_response_len = raw_len;
     }
@@ -498,17 +486,18 @@ static bool send_payload(const uint8_t *payload, size_t payload_len,
  *       are shared by every reply path.
  * @see send_payload, flatcc_builder_reset
  */
-static bool send_body(hwlink_Body_union_ref_t body, uint16_t seq,
-                      uint8_t flags, bool store)
+static bool send_body(hwlink_Body_union_ref_t body, uint16_t seq, uint8_t flags, bool store)
 {
-    if (hwlink_Message_create_as_root(&builder, body) == 0) {
+    if(hwlink_Message_create_as_root(&builder, body) == 0)
+    {
         flatcc_builder_reset(&builder);
         return false;
     }
 
-    size_t size = 0U;
-    void *direct = flatcc_builder_get_direct_buffer(&builder, &size);
-    if (direct == NULL || size == 0U || size > sizeof(build_payload)) {
+    size_t size   = 0U;
+    void  *direct = flatcc_builder_get_direct_buffer(&builder, &size);
+    if(direct == NULL || size == 0U || size > sizeof(build_payload))
+    {
         flatcc_builder_reset(&builder);
         return false;
     }
@@ -540,8 +529,7 @@ static bool send_ack(uint16_t seq)
 {
     flatcc_builder_reset(&builder);
     hwlink_Ack_ref_t ack = hwlink_Ack_create(&builder, seq, 0U);
-    return ack != 0 &&
-           send_body(hwlink_Body_as_Ack(ack), seq, HWLINK_FLAG_RESPONSE, true);
+    return ack != 0 && send_body(hwlink_Body_as_Ack(ack), seq, HWLINK_FLAG_RESPONSE, true);
 }
 
 /**
@@ -568,16 +556,12 @@ static bool send_ack(uint16_t seq)
  * @note Blocking for the frame's line time; callers run in the Comms task.
  * @see send_ack
  */
-static bool send_nak(uint16_t seq, hwlink_Error_enum_t error,
-                     const char *detail, uint32_t expected_offset)
+static bool send_nak(uint16_t seq, hwlink_Error_enum_t error, const char *detail, uint32_t expected_offset)
 {
     flatcc_builder_reset(&builder);
-    flatbuffers_string_ref_t text =
-        flatbuffers_string_create_str(&builder, detail != NULL ? detail : "");
-    hwlink_Nak_ref_t nak =
-        hwlink_Nak_create(&builder, seq, error, text, expected_offset);
-    return nak != 0 &&
-           send_body(hwlink_Body_as_Nak(nak), seq, HWLINK_FLAG_RESPONSE, true);
+    flatbuffers_string_ref_t text = flatbuffers_string_create_str(&builder, detail != NULL ? detail : "");
+    hwlink_Nak_ref_t         nak  = hwlink_Nak_create(&builder, seq, error, text, expected_offset);
+    return nak != 0 && send_body(hwlink_Body_as_Nak(nak), seq, HWLINK_FLAG_RESPONSE, true);
 }
 
 /**
@@ -597,10 +581,8 @@ static bool send_nak(uint16_t seq, hwlink_Error_enum_t error,
 static bool send_pong(uint16_t seq)
 {
     flatcc_builder_reset(&builder);
-    hwlink_Pong_ref_t pong =
-        hwlink_Pong_create(&builder, (uint64_t)HAL_GetTick());
-    return pong != 0 &&
-           send_body(hwlink_Body_as_Pong(pong), seq, HWLINK_FLAG_RESPONSE, true);
+    hwlink_Pong_ref_t pong = hwlink_Pong_create(&builder, (uint64_t)HAL_GetTick());
+    return pong != 0 && send_body(hwlink_Body_as_Pong(pong), seq, HWLINK_FLAG_RESPONSE, true);
 }
 
 /**
@@ -631,28 +613,17 @@ static bool send_hello_reply(uint16_t seq)
 {
     flatcc_builder_reset(&builder);
 
-    flatbuffers_string_ref_t name =
-        flatbuffers_string_create_str(&builder, firmware_name());
-    flatbuffers_string_ref_t version =
-        flatbuffers_string_create_str(&builder, APP_VERSION_STR);
-    flatbuffers_string_ref_t commit =
-        flatbuffers_string_create_str(&builder, APP_GIT_COMMIT);
-    flatbuffers_string_ref_t build =
-        flatbuffers_string_create_str(&builder, APP_BUILD_DATE);
-    char identity_detail[192];
+    flatbuffers_string_ref_t name    = flatbuffers_string_create_str(&builder, firmware_name());
+    flatbuffers_string_ref_t version = flatbuffers_string_create_str(&builder, APP_VERSION_STR);
+    flatbuffers_string_ref_t commit  = flatbuffers_string_create_str(&builder, APP_GIT_COMMIT);
+    flatbuffers_string_ref_t build   = flatbuffers_string_create_str(&builder, APP_BUILD_DATE);
+    char                     identity_detail[192];
     (void)app_identity_detail(identity_detail, sizeof(identity_detail));
-    flatbuffers_string_ref_t detail =
-        flatbuffers_string_create_str(&builder, identity_detail);
+    flatbuffers_string_ref_t detail = flatbuffers_string_create_str(&builder, identity_detail);
 
-    hwlink_HelloReply_ref_t reply = hwlink_HelloReply_create(
-        &builder, hwlink_Role_DEMO, name, version, commit, build,
-        device_uid(), HAL_GetDEVID(), HAL_GetREVID(), flash_mode(),
-        (uint16_t)HWLINK_PROTOCOL_MAJOR, (uint16_t)HWLINK_PROTOCOL_MINOR,
-        (uint16_t)HWLINK_MAX_FRAME, detail);
+    hwlink_HelloReply_ref_t reply = hwlink_HelloReply_create(&builder, hwlink_Role_DEMO, name, version, commit, build, device_uid(), HAL_GetDEVID(), HAL_GetREVID(), flash_mode(), (uint16_t)HWLINK_PROTOCOL_MAJOR, (uint16_t)HWLINK_PROTOCOL_MINOR, (uint16_t)HWLINK_MAX_FRAME, detail);
 
-    return reply != 0 &&
-           send_body(hwlink_Body_as_HelloReply(reply), seq,
-                     HWLINK_FLAG_RESPONSE, true);
+    return reply != 0 && send_body(hwlink_Body_as_HelloReply(reply), seq, HWLINK_FLAG_RESPONSE, true);
 }
 
 /**
@@ -701,56 +672,41 @@ static bool send_hello_reply(uint16_t seq)
 static bool send_status(uint16_t seq)
 {
     TaskStatus_t task_status[COMMS_MAX_TASK_STATS];
-    UBaseType_t task_count = uxTaskGetSystemState(
-        task_status, COMMS_MAX_TASK_STATS, NULL);
-    if (task_count > COMMS_MAX_TASK_STATS) {
+    UBaseType_t  task_count = uxTaskGetSystemState(task_status, COMMS_MAX_TASK_STATS, NULL);
+    if(task_count > COMMS_MAX_TASK_STATS)
+    {
         task_count = COMMS_MAX_TASK_STATS;
     }
 
     flatcc_builder_reset(&builder);
 
     hwlink_TaskStats_ref_t task_refs[COMMS_MAX_TASK_STATS];
-    for (UBaseType_t i = 0U; i < task_count; i++) {
-        flatbuffers_string_ref_t name = flatbuffers_string_create_str(
-            &builder, task_status[i].pcTaskName != NULL
-                          ? task_status[i].pcTaskName : "?");
-        task_refs[i] = hwlink_TaskStats_create(
-            &builder, name,
-            (uint8_t)task_status[i].uxCurrentPriority,
-            (uint8_t)task_status[i].eCurrentState,
-            (uint16_t)task_status[i].usStackHighWaterMark);
+    for(UBaseType_t i = 0U; i < task_count; i++)
+    {
+        flatbuffers_string_ref_t name = flatbuffers_string_create_str(&builder, task_status[i].pcTaskName != NULL ? task_status[i].pcTaskName : "?");
+        task_refs[i]                  = hwlink_TaskStats_create(&builder, name, (uint8_t)task_status[i].uxCurrentPriority, (uint8_t)task_status[i].eCurrentState, (uint16_t)task_status[i].usStackHighWaterMark);
     }
 
     hwlink_LedState_ref_t led_refs[3];
-    for (uint32_t i = 0U; i < 3U; i++) {
-        led_refs[i] = hwlink_LedState_create(
-            &builder, (hwlink_LedId_enum_t)(i + 1U),
-            (hwlink_LedPattern_enum_t)led_mirror[i].pattern,
-            led_mirror[i].period);
+    for(uint32_t i = 0U; i < 3U; i++)
+    {
+        led_refs[i] = hwlink_LedState_create(&builder, (hwlink_LedId_enum_t)(i + 1U), (hwlink_LedPattern_enum_t)led_mirror[i].pattern, led_mirror[i].period);
     }
 
-    bool fault_present = app_fault_is_valid();
-    hwlink_FaultInfo_ref_t fault = 0;
-    if (fault_present) {
-        flatbuffers_string_ref_t fault_reason = flatbuffers_string_create_str(
-            &builder,
-            app_fault_reason_text((app_fault_reason_t)g_app_fault.reason));
-        flatbuffers_string_ref_t fault_task = flatbuffers_string_create_str(
-            &builder, app_fault_task());
-        flatbuffers_string_ref_t fault_file = flatbuffers_string_create_str(
-            &builder, app_fault_file());
-        fault = hwlink_FaultInfo_create(
-            &builder, true, fault_reason, g_app_fault.cfsr,
-            g_app_fault.hfsr, g_app_fault.mmfar, g_app_fault.bfar,
-            g_app_fault.pc, g_app_fault.lr, fault_task, fault_file,
-            g_app_fault.line);
+    bool                   fault_present = app_fault_is_valid();
+    hwlink_FaultInfo_ref_t fault         = 0;
+    if(fault_present)
+    {
+        flatbuffers_string_ref_t fault_reason = flatbuffers_string_create_str(&builder, app_fault_reason_text((app_fault_reason_t)g_app_fault.reason));
+        flatbuffers_string_ref_t fault_task   = flatbuffers_string_create_str(&builder, app_fault_task());
+        flatbuffers_string_ref_t fault_file   = flatbuffers_string_create_str(&builder, app_fault_file());
+        fault                                 = hwlink_FaultInfo_create(&builder, true, fault_reason, g_app_fault.cfsr, g_app_fault.hfsr, g_app_fault.mmfar, g_app_fault.bfar, g_app_fault.pc, g_app_fault.lr, fault_task, fault_file, g_app_fault.line);
     }
 
     /* COM-003: keep Status inside 50 ms of line time at 115200 even with a
      * fault.  Identity is already in HelloReply; reset_cause_text is derived
      * from reset_cause by the host.  Only "version" stays here (SRS §8.1). */
-    flatbuffers_string_ref_t version =
-        flatbuffers_string_create_str(&builder, APP_VERSION_STR);
+    flatbuffers_string_ref_t version = flatbuffers_string_create_str(&builder, APP_VERSION_STR);
 
     hwlink_Status_start(&builder);
     hwlink_Status_version_add(&builder, version);
@@ -761,37 +717,37 @@ static bool send_status(uint16_t seq)
     hwlink_Status_trial_count_add(&builder, g_handover.trial_count);
     hwlink_Status_health_add(&builder, (hwlink_HealthState_enum_t)health_state_get());
     hwlink_Status_reset_cause_add(&builder, app_reset_cause_flags);
-    if (fault != 0) {
+    if(fault != 0)
+    {
         hwlink_Status_fault_add(&builder, fault);
     }
 
     hwlink_Status_leds_start(&builder);
-    for (uint32_t i = 0U; i < 3U; i++) {
+    for(uint32_t i = 0U; i < 3U; i++)
+    {
         hwlink_Status_leds_push(&builder, led_refs[i]);
     }
     hwlink_Status_leds_end(&builder);
 
     hwlink_Status_tasks_start(&builder);
-    for (UBaseType_t i = 0U; i < task_count; i++) {
+    for(UBaseType_t i = 0U; i < task_count; i++)
+    {
         hwlink_Status_tasks_push(&builder, task_refs[i]);
     }
     hwlink_Status_tasks_end(&builder);
 
     hwlink_Status_heap_free_add(&builder, (uint32_t)xPortGetFreeHeapSize());
-    hwlink_Status_heap_min_free_add(
-        &builder, (uint32_t)xPortGetMinimumEverFreeHeapSize());
-    hwlink_Status_protocol_major_add(&builder,
-                                     (uint16_t)HWLINK_PROTOCOL_MAJOR);
-    hwlink_Status_protocol_minor_add(&builder,
-                                     (uint16_t)HWLINK_PROTOCOL_MINOR);
+    hwlink_Status_heap_min_free_add(&builder, (uint32_t)xPortGetMinimumEverFreeHeapSize());
+    hwlink_Status_protocol_major_add(&builder, (uint16_t)HWLINK_PROTOCOL_MAJOR);
+    hwlink_Status_protocol_minor_add(&builder, (uint16_t)HWLINK_PROTOCOL_MINOR);
 
     hwlink_Status_ref_t status = hwlink_Status_end(&builder);
-    if (status == 0) {
+    if(status == 0)
+    {
         flatcc_builder_reset(&builder);
         return false;
     }
-    return send_body(hwlink_Body_as_Status(status), seq,
-                     HWLINK_FLAG_RESPONSE, true);
+    return send_body(hwlink_Body_as_Status(status), seq, HWLINK_FLAG_RESPONSE, true);
 }
 
 /**
@@ -818,12 +774,8 @@ static bool send_status(uint16_t seq)
 static bool send_button_event(uint8_t press, uint8_t pattern, uint16_t period)
 {
     flatcc_builder_reset(&builder);
-    hwlink_ButtonEvent_ref_t event = hwlink_ButtonEvent_create(
-        &builder, (hwlink_ButtonPress_enum_t)press,
-        (hwlink_LedPattern_enum_t)pattern, period);
-    return event != 0 &&
-           send_body(hwlink_Body_as_ButtonEvent(event), 0U,
-                     HWLINK_FLAG_EVENT, false);
+    hwlink_ButtonEvent_ref_t event = hwlink_ButtonEvent_create(&builder, (hwlink_ButtonPress_enum_t)press, (hwlink_LedPattern_enum_t)pattern, period);
+    return event != 0 && send_body(hwlink_Body_as_ButtonEvent(event), 0U, HWLINK_FLAG_EVENT, false);
 }
 
 /**
@@ -839,11 +791,7 @@ static bool send_button_event(uint8_t press, uint8_t pattern, uint16_t period)
  * @note Pure predicate, no state; safe to call from any task context.
  * @see pattern_valid, APP_LED_MIN_PERIOD, APP_LED_MAX_PERIOD
  */
-static bool period_valid(uint16_t period)
-{
-    return period >= APP_LED_MIN_PERIOD && period <= APP_LED_MAX_PERIOD &&
-           (period % 10U) == 0U;
-}
+static bool period_valid(uint16_t period) { return period >= APP_LED_MIN_PERIOD && period <= APP_LED_MAX_PERIOD && (period % 10U) == 0U; }
 
 /**
  * @brief Check a pattern identifier against the LED task contract.
@@ -857,10 +805,7 @@ static bool period_valid(uint16_t period)
  * @note Pure predicate, no state.
  * @see period_valid
  */
-static bool pattern_valid(uint8_t pattern)
-{
-    return pattern < APP_PATTERN_COUNT;
-}
+static bool pattern_valid(uint8_t pattern) { return pattern < APP_PATTERN_COUNT; }
 
 /**
  * @brief Update the local LED mirror after a successful single-LED request.
@@ -889,24 +834,28 @@ static bool pattern_valid(uint8_t pattern)
  */
 static void mirror_set(uint8_t led, uint8_t pattern, uint16_t period)
 {
-    if (led == APP_LED_ID_1 || led == APP_LED_ID_2) {
-        if (pattern == APP_PATTERN_CHASE) {
+    if(led == APP_LED_ID_1 || led == APP_LED_ID_2)
+    {
+        if(pattern == APP_PATTERN_CHASE)
+        {
             led_mirror[0].pattern = APP_PATTERN_CHASE;
-            led_mirror[0].period = period;
+            led_mirror[0].period  = period;
             led_mirror[1].pattern = APP_PATTERN_CHASE;
-            led_mirror[1].period = period;
+            led_mirror[1].period  = period;
             return;
         }
-        if (led_mirror[0].pattern == APP_PATTERN_CHASE ||
-            led_mirror[1].pattern == APP_PATTERN_CHASE) {
+        if(led_mirror[0].pattern == APP_PATTERN_CHASE || led_mirror[1].pattern == APP_PATTERN_CHASE)
+        {
             led_mirror[led == APP_LED_ID_1 ? 1 : 0].pattern = APP_PATTERN_OFF;
-            led_mirror[led == APP_LED_ID_1 ? 1 : 0].period = period;
+            led_mirror[led == APP_LED_ID_1 ? 1 : 0].period  = period;
         }
         led_mirror[led - 1U].pattern = pattern;
-        led_mirror[led - 1U].period = period;
-    } else if (led == APP_LED_ID_3) {
+        led_mirror[led - 1U].period  = period;
+    }
+    else if(led == APP_LED_ID_3)
+    {
         led_mirror[2].pattern = pattern;
-        led_mirror[2].period = period;
+        led_mirror[2].period  = period;
     }
 }
 
@@ -941,22 +890,23 @@ static void mirror_set(uint8_t led, uint8_t pattern, uint16_t period)
  */
 static void handle_set_led(const hwlink_SetLed_table_t set, uint16_t seq)
 {
-    uint8_t led = (uint8_t)hwlink_SetLed_led(set);
-    uint8_t pattern = (uint8_t)hwlink_SetLed_pattern(set);
-    uint16_t period = hwlink_SetLed_period_ms(set);
-    bool force = hwlink_SetLed_force(set) != 0U;
+    uint8_t  led     = (uint8_t)hwlink_SetLed_led(set);
+    uint8_t  pattern = (uint8_t)hwlink_SetLed_pattern(set);
+    uint16_t period  = hwlink_SetLed_period_ms(set);
+    bool     force   = hwlink_SetLed_force(set) != 0U;
 
-    if (!pattern_valid(pattern) || !period_valid(period) ||
-        led < APP_LED_ID_1 || led > APP_LED_ID_3) {
+    if(!pattern_valid(pattern) || !period_valid(period) || led < APP_LED_ID_1 || led > APP_LED_ID_3)
+    {
         (void)send_nak(seq, hwlink_Error_BAD_ARGUMENT, "LED, pattern or period", 0U);
         return;
     }
-    if (led == APP_LED_ID_3 && !force) {
-        (void)send_nak(seq, hwlink_Error_BAD_ARGUMENT,
-                       "LD3 is reserved; force required", 0U);
+    if(led == APP_LED_ID_3 && !force)
+    {
+        (void)send_nak(seq, hwlink_Error_BAD_ARGUMENT, "LD3 is reserved; force required", 0U);
         return;
     }
-    if (!led_post_set(led, pattern, period, force)) {
+    if(!led_post_set(led, pattern, period, force))
+    {
         (void)send_nak(seq, hwlink_Error_BUSY, "LED queue full", 0U);
         return;
     }
@@ -988,24 +938,29 @@ static void handle_set_led(const hwlink_SetLed_table_t set, uint16_t seq)
  */
 static void handle_set_led_all(const hwlink_SetLedAll_table_t set, uint16_t seq)
 {
-    uint8_t pattern = (uint8_t)hwlink_SetLedAll_pattern(set);
-    uint16_t period = hwlink_SetLedAll_period_ms(set);
+    uint8_t  pattern = (uint8_t)hwlink_SetLedAll_pattern(set);
+    uint16_t period  = hwlink_SetLedAll_period_ms(set);
 
-    if (!pattern_valid(pattern) || !period_valid(period)) {
+    if(!pattern_valid(pattern) || !period_valid(period))
+    {
         (void)send_nak(seq, hwlink_Error_BAD_ARGUMENT, "pattern or period", 0U);
         return;
     }
-    if (!led_post_set_all(pattern, period)) {
+    if(!led_post_set_all(pattern, period))
+    {
         (void)send_nak(seq, hwlink_Error_BUSY, "LED queue full", 0U);
         return;
     }
-    if (pattern == APP_PATTERN_CHASE) {
+    if(pattern == APP_PATTERN_CHASE)
+    {
         mirror_set(APP_LED_ID_1, pattern, period);
-    } else {
+    }
+    else
+    {
         led_mirror[0].pattern = pattern;
-        led_mirror[0].period = period;
+        led_mirror[0].period  = period;
         led_mirror[1].pattern = pattern;
-        led_mirror[1].period = period;
+        led_mirror[1].period  = period;
     }
     (void)send_ack(seq);
 }
@@ -1070,37 +1025,34 @@ static void handle_set_led_all(const hwlink_SetLedAll_table_t set, uint16_t seq)
  */
 static void handle_payload(uint16_t seq, const uint8_t *payload, size_t len)
 {
-    if (hwlink_Message_verify_as_root(payload, len) != flatcc_verify_ok) {
+    if(hwlink_Message_verify_as_root(payload, len) != flatcc_verify_ok)
+    {
         (void)send_nak(seq, hwlink_Error_MALFORMED, "flatbuffer verifier", 0U);
         return;
     }
 
     hwlink_Message_table_t message = hwlink_Message_as_root(payload);
-    hwlink_Body_union_t body = hwlink_Message_body_union(message);
+    hwlink_Body_union_t    body    = hwlink_Message_body_union(message);
 
-    switch (body.type) {
+    switch(body.type)
+    {
     case hwlink_Body_Hello:
         link_open = true;
         (void)send_hello_reply(seq);
         break;
 
-    case hwlink_Body_Ping:
-        (void)send_pong(seq);
-        break;
+    case hwlink_Body_Ping: (void)send_pong(seq); break;
 
     case hwlink_Body_GetStatus:
-        if (!send_status(seq)) {
+        if(!send_status(seq))
+        {
             (void)send_nak(seq, hwlink_Error_BUSY, "status build failed", 0U);
         }
         break;
 
-    case hwlink_Body_SetLed:
-        handle_set_led((hwlink_SetLed_table_t)body.value, seq);
-        break;
+    case hwlink_Body_SetLed: handle_set_led((hwlink_SetLed_table_t)body.value, seq); break;
 
-    case hwlink_Body_SetLedAll:
-        handle_set_led_all((hwlink_SetLedAll_table_t)body.value, seq);
-        break;
+    case hwlink_Body_SetLedAll: handle_set_led_all((hwlink_SetLedAll_table_t)body.value, seq); break;
 
     case hwlink_Body_ClearFault:
         app_fault_clear();
@@ -1109,27 +1061,34 @@ static void handle_payload(uint16_t seq, const uint8_t *payload, size_t len)
         (void)send_ack(seq);
         break;
 
-    case hwlink_Body_SetBaud: {
+    case hwlink_Body_SetBaud:
+    {
         uint32_t rate = hwlink_SetBaud_rate((hwlink_SetBaud_table_t)body.value);
-        if (rate != APP_UART_DEFAULT_BAUD && rate != APP_UART_FAST_BAUD) {
+        if(rate != APP_UART_DEFAULT_BAUD && rate != APP_UART_FAST_BAUD)
+        {
             (void)send_nak(seq, hwlink_Error_BAD_ARGUMENT, "baud rate", 0U);
             break;
         }
-        if (!send_ack(seq)) {
+        if(!send_ack(seq))
+        {
             break;
         }
         reset_parser();
-        if (app_uart3_set_baud(rate)) {
+        if(app_uart3_set_baud(rate))
+        {
             baud_revert_pending = rate != APP_UART_DEFAULT_BAUD;
-            baud_last_valid = xTaskGetTickCount();
-        } else {
+            baud_last_valid     = xTaskGetTickCount();
+        }
+        else
+        {
             baud_revert_pending = false;
         }
         break;
     }
 
     case hwlink_Body_EnterBootloader:
-        if (send_ack(seq)) {
+        if(send_ack(seq))
+        {
             LOG_I("HWLINK: EnterBootloader, resetting into BOOT");
             app_log_flush(20U);
             app_handover_request_bootloader();
@@ -1138,7 +1097,8 @@ static void handle_payload(uint16_t seq, const uint8_t *payload, size_t len)
         break;
 
     case hwlink_Body_Reset:
-        if (send_ack(seq)) {
+        if(send_ack(seq))
+        {
             LOG_I("HWLINK: Reset");
             app_log_flush(20U);
             NVIC_SystemReset();
@@ -1161,9 +1121,7 @@ static void handle_payload(uint16_t seq, const uint8_t *payload, size_t len)
     case hwlink_Body_UpdateAbort:
     case hwlink_Body_Status:
     case hwlink_Body_ButtonEvent:
-    default:
-        (void)send_nak(seq, hwlink_Error_UNSUPPORTED, "message not supported", 0U);
-        break;
+    default: (void)send_nak(seq, hwlink_Error_UNSUPPORTED, "message not supported", 0U); break;
     }
 }
 
@@ -1213,13 +1171,13 @@ static void handle_payload(uint16_t seq, const uint8_t *payload, size_t len)
  */
 static void handle_raw(const uint8_t *raw, size_t raw_len)
 {
-    size_t payload_len = 0U;
-    uint8_t flags = 0U;
-    uint16_t seq = 0U;
+    size_t   payload_len = 0U;
+    uint8_t  flags       = 0U;
+    uint16_t seq         = 0U;
 
-    if (!hwlink_decode_raw(raw, raw_len, rx_payload, sizeof(rx_payload),
-                           &payload_len, &flags, &seq)) {
-        return;   /* LNK-004: bad CRC is dropped silently */
+    if(!hwlink_decode_raw(raw, raw_len, rx_payload, sizeof(rx_payload), &payload_len, &flags, &seq))
+    {
+        return; /* LNK-004: bad CRC is dropped silently */
     }
 
     baud_last_valid = xTaskGetTickCount();
@@ -1228,35 +1186,36 @@ static void handle_raw(const uint8_t *raw, size_t raw_len)
      * reverting; otherwise an idle link (no traffic for 5 s) would drop the
      * board back to 115200 while the host stays at 921600. */
     baud_revert_pending = false;
-    if ((flags & (HWLINK_FLAG_RESPONSE | HWLINK_FLAG_EVENT)) != 0U) {
+    if((flags & (HWLINK_FLAG_RESPONSE | HWLINK_FLAG_EVENT)) != 0U)
+    {
         return;
     }
 
     /* A new host session starts at sequence 1.  Never answer its Hello
      * from the replay cache, or role detection fails until a reset. */
-    if (hwlink_Message_verify_as_root(rx_payload, payload_len) ==
-        flatcc_verify_ok) {
+    if(hwlink_Message_verify_as_root(rx_payload, payload_len) == flatcc_verify_ok)
+    {
         hwlink_Message_table_t message = hwlink_Message_as_root(rx_payload);
-        if (hwlink_Message_body_union(message).type == hwlink_Body_Hello) {
+        if(hwlink_Message_body_union(message).type == hwlink_Body_Hello)
+        {
             last_request_valid = false;
-            last_response_len = 0U;
+            last_response_len  = 0U;
         }
     }
 
-    if (last_request_valid && seq == last_request_seq &&
-        last_response_len > 0U) {
+    if(last_request_valid && seq == last_request_seq && last_response_len > 0U)
+    {
         size_t encoded_len = 0U;
-        if (hwlink_cobs_encode(last_response, last_response_len, tx_frame,
-                               sizeof(tx_frame), &encoded_len)) {
-            (void)app_uart3_send(tx_frame, (uint16_t)encoded_len,
-                                COMMS_TX_TIMEOUT_MS);
+        if(hwlink_cobs_encode(last_response, last_response_len, tx_frame, sizeof(tx_frame), &encoded_len))
+        {
+            (void)app_uart3_send(tx_frame, (uint16_t)encoded_len, COMMS_TX_TIMEOUT_MS);
         }
         return;
     }
 
     last_request_valid = seq != 0U;
-    last_request_seq = seq;
-    last_response_len = 0U;
+    last_request_seq   = seq;
+    last_response_len  = 0U;
 
     handle_payload(seq, rx_payload, payload_len);
 }
@@ -1288,18 +1247,24 @@ static void handle_raw(const uint8_t *raw, size_t raw_len)
  */
 static void feed_byte(uint8_t byte)
 {
-    if (byte == 0U) {
-        if (!rx_enc_overflow && rx_enc_len > 0U) {
+    if(byte == 0U)
+    {
+        if(!rx_enc_overflow && rx_enc_len > 0U)
+        {
             size_t raw_len = 0U;
-            if (hwlink_cobs_decode(rx_enc, rx_enc_len, rx_raw,
-                                   sizeof(rx_raw), &raw_len) == 0) {
+            if(hwlink_cobs_decode(rx_enc, rx_enc_len, rx_raw, sizeof(rx_raw), &raw_len) == 0)
+            {
                 handle_raw(rx_raw, raw_len);
             }
         }
         reset_parser();
-    } else if (rx_enc_len < sizeof(rx_enc)) {
+    }
+    else if(rx_enc_len < sizeof(rx_enc))
+    {
         rx_enc[rx_enc_len++] = byte;
-    } else {
+    }
+    else
+    {
         rx_enc_overflow = true;
     }
 }
@@ -1332,12 +1297,15 @@ static void poll_receive(void)
 {
     uint8_t chunk[64];
 
-    for (uint32_t batch = 0U; batch < 8U; batch++) {
+    for(uint32_t batch = 0U; batch < 8U; batch++)
+    {
         uint32_t got = app_uart3_rx_read(chunk, sizeof(chunk));
-        if (got == 0U) {
+        if(got == 0U)
+        {
             break;
         }
-        for (uint32_t i = 0U; i < got; i++) {
+        for(uint32_t i = 0U; i < got; i++)
+        {
             feed_byte(chunk[i]);
         }
     }
@@ -1374,20 +1342,22 @@ static void poll_receive(void)
  */
 static void handle_button_event(const comms_event_t *event)
 {
-    if (event->press == 2U) {
+    if(event->press == 2U)
+    {
         led_mirror[0].pattern = APP_PATTERN_HEARTBEAT;
-        led_mirror[0].period = APP_LED_DEFAULT_PERIOD;
+        led_mirror[0].period  = APP_LED_DEFAULT_PERIOD;
         led_mirror[1].pattern = APP_PATTERN_OFF;
-        led_mirror[1].period = APP_LED_DEFAULT_PERIOD;
-    } else if (event->pattern < APP_PATTERN_COUNT &&
-               event->period >= APP_LED_MIN_PERIOD &&
-               event->period <= APP_LED_MAX_PERIOD) {
-        led_mirror[0].pattern = event->pattern;
-        led_mirror[0].period = event->period;
-        led_mirror[1].pattern = event->pattern;
-        led_mirror[1].period = event->period;
+        led_mirror[1].period  = APP_LED_DEFAULT_PERIOD;
     }
-    if (link_open) {
+    else if(event->pattern < APP_PATTERN_COUNT && event->period >= APP_LED_MIN_PERIOD && event->period <= APP_LED_MAX_PERIOD)
+    {
+        led_mirror[0].pattern = event->pattern;
+        led_mirror[0].period  = event->period;
+        led_mirror[1].pattern = event->pattern;
+        led_mirror[1].period  = event->period;
+    }
+    if(link_open)
+    {
         (void)send_button_event(event->press, event->pattern, event->period);
     }
 }
@@ -1435,27 +1405,34 @@ static void comms_task(void *arg)
 {
     (void)arg;
     comms_event_t event;
-    uint32_t last_checkin = xTaskGetTickCount();
+    uint32_t      last_checkin = xTaskGetTickCount();
 
-    for (;;) {
-        if (xQueueReceive(comms_queue, &event, pdMS_TO_TICKS(COMMS_LOOP_MS)) ==
-            pdPASS) {
-            do {
-                if (event.type == COMMS_EVT_RX) {
+    for(;;)
+    {
+        if(xQueueReceive(comms_queue, &event, pdMS_TO_TICKS(COMMS_LOOP_MS)) == pdPASS)
+        {
+            do
+            {
+                if(event.type == COMMS_EVT_RX)
+                {
                     poll_receive();
-                } else if (event.type == COMMS_EVT_BUTTON) {
+                }
+                else if(event.type == COMMS_EVT_BUTTON)
+                {
                     /* Legacy entry: buttons now use button_queue, but an entry
                      * left over from the shared queue is still handled. */
                     handle_button_event(&event);
                 }
-            } while (xQueueReceive(comms_queue, &event, 0U) == pdPASS);
+            } while(xQueueReceive(comms_queue, &event, 0U) == pdPASS);
         }
 
         /* BTN-004/LED-006: button events have their own queue and are always
          * drained with a zero-time receive, so the LED task never waits on
          * them and they cannot be starved by RX hints. */
-        while (xQueueReceive(button_queue, &event, 0U) == pdPASS) {
-            if (event.type == COMMS_EVT_BUTTON) {
+        while(xQueueReceive(button_queue, &event, 0U) == pdPASS)
+        {
+            if(event.type == COMMS_EVT_BUTTON)
+            {
                 handle_button_event(&event);
             }
         }
@@ -1464,19 +1441,21 @@ static void comms_task(void *arg)
 
         /* COM-002/HLT-001: a receive error or DMA abort must not kill the
          * link.  Re-arm the receiver when it is no longer running. */
-        if (!app_uart3_rx_running()) {
+        if(!app_uart3_rx_running())
+        {
             (void)app_uart3_rx_restart();
         }
 
         uint32_t now = xTaskGetTickCount();
-        if (baud_revert_pending &&
-            (now - baud_last_valid) >= COMMS_BAUD_REVERT_MS) {
+        if(baud_revert_pending && (now - baud_last_valid) >= COMMS_BAUD_REVERT_MS)
+        {
             reset_parser();
             (void)app_uart3_set_baud(APP_UART_DEFAULT_BAUD);
             baud_revert_pending = false;
         }
 
-        if ((now - last_checkin) >= COMMS_CHECKIN_MS) {
+        if((now - last_checkin) >= COMMS_CHECKIN_MS)
+        {
             health_checkin(HEALTH_TASK_COMMS);
             last_checkin = now;
         }
@@ -1516,18 +1495,20 @@ static void comms_task(void *arg)
 bool comms_task_create(void)
 {
     comms_queue = xQueueCreate(COMMS_EVENT_QUEUE_LEN, sizeof(comms_event_t));
-    if (comms_queue == NULL) {
+    if(comms_queue == NULL)
+    {
         return false;
     }
     button_queue = xQueueCreate(COMMS_BUTTON_QUEUE_LEN, sizeof(comms_event_t));
-    if (button_queue == NULL) {
+    if(button_queue == NULL)
+    {
         return false;
     }
-    if (flatcc_builder_init(&builder) != 0) {
+    if(flatcc_builder_init(&builder) != 0)
+    {
         return false;
     }
-    return xTaskCreate(comms_task, "Comms", COMMS_TASK_STACK_WORDS, NULL,
-                       COMMS_TASK_PRIORITY, &comms_task_handle) == pdPASS;
+    return xTaskCreate(comms_task, "Comms", COMMS_TASK_STACK_WORDS, NULL, COMMS_TASK_PRIORITY, &comms_task_handle) == pdPASS;
 }
 
 /**
@@ -1555,11 +1536,12 @@ bool comms_task_create(void)
  */
 void comms_post_rx_from_isr(void)
 {
-    if (comms_queue == NULL) {
+    if(comms_queue == NULL)
+    {
         return;
     }
-    comms_event_t event = { .type = COMMS_EVT_RX };
-    BaseType_t woken = pdFALSE;
+    comms_event_t event = {.type = COMMS_EVT_RX};
+    BaseType_t    woken = pdFALSE;
     (void)xQueueSendFromISR(comms_queue, &event, &woken);
     portYIELD_FROM_ISR(woken);
 }
@@ -1587,15 +1569,11 @@ void comms_post_rx_from_isr(void)
  */
 void comms_post_button_event(uint8_t press, uint8_t pattern, uint16_t period)
 {
-    if (button_queue == NULL) {
+    if(button_queue == NULL)
+    {
         return;
     }
-    comms_event_t event = {
-        .type = COMMS_EVT_BUTTON,
-        .press = press,
-        .pattern = pattern,
-        .period = period
-    };
+    comms_event_t event = {.type = COMMS_EVT_BUTTON, .press = press, .pattern = pattern, .period = period};
     /* BTN-004/LED-006: post with no wait at all.  The LED task must not stall
      * behind RX hints; when the dedicated button queue is full the event is
      * dropped instead. */

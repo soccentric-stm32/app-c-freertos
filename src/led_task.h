@@ -49,14 +49,14 @@
  * @details Valid for @ref led_post_set.  LD1 and LD2 form a pair: setting
  *          @ref APP_PATTERN_CHASE on either one applies it to both.
  */
-#define APP_LED_ID_1       1U
+#define APP_LED_ID_1 1U
 
 /**
  * @brief LED identifier for LD2, the blue user LED (PB7).
  * @details Valid for @ref led_post_set and behaves exactly like
  *          @ref APP_LED_ID_1 with respect to the CHASE pairing.
  */
-#define APP_LED_ID_2       2U
+#define APP_LED_ID_2 2U
 
 /**
  * @brief LED identifier for LD3, the red error LED (PB14).
@@ -68,20 +68,20 @@
  * @warning Do not use LD3 as a generic indicator.  Health and latched error
  *          bits override the configured pattern and hide it completely.
  */
-#define APP_LED_ID_3       3U
+#define APP_LED_ID_3 3U
 
 /**
  * @brief Pattern that leaves the LED dark.
  * @details The LED is driven low and the task does not schedule a transition
  *          for it, so it only wakes for the health check-in or a new message.
  */
-#define APP_PATTERN_OFF        0U
+#define APP_PATTERN_OFF 0U
 
 /**
  * @brief Pattern that holds the LED continuously lit.
  * @details Drive only: like OFF, no periodic transition is scheduled.
  */
-#define APP_PATTERN_ON         1U
+#define APP_PATTERN_ON 1U
 
 /**
  * @brief Symmetric blink, one on and one off segment per period.
@@ -89,7 +89,7 @@
  *          so a 1000 ms period yields 500 ms on and 500 ms off.  The default
  *          period of @ref APP_LED_DEFAULT_PERIOD gives a 1 Hz blink.
  */
-#define APP_PATTERN_BLINK      2U
+#define APP_PATTERN_BLINK 2U
 
 /**
  * @brief Two short flashes per cycle, as used for the default LD1 pattern.
@@ -98,7 +98,7 @@
  *          a shorter configured period is clamped to 250 ms; with the 1000 ms
  *          default the final gap is 750 ms.
  */
-#define APP_PATTERN_HEARTBEAT  3U
+#define APP_PATTERN_HEARTBEAT 3U
 
 /**
  * @brief Blink at five times the rate of @ref APP_PATTERN_BLINK.
@@ -106,7 +106,7 @@
  *          segment of @c cycle/2 and the remainder off.  A 1000 ms period
  *          therefore produces a 200 ms cycle, that is, a 5 Hz blink.
  */
-#define APP_PATTERN_FAST       4U
+#define APP_PATTERN_FAST 4U
 
 /**
  * @brief Alternating pattern for the LD1/LD2 pair.
@@ -117,7 +117,7 @@
  * @note The effect is only visible when both LEDs are on the same board;
  *       LD3 is not part of the pair.
  */
-#define APP_PATTERN_CHASE      5U
+#define APP_PATTERN_CHASE 5U
 
 /**
  * @brief Morse "SOS" (... --- ...) on a fixed 100 ms time unit.
@@ -128,7 +128,7 @@
  * @note Because the period is ignored, a period change alone cannot alter the
  *       rhythm of this pattern; only switching away and back restarts it.
  */
-#define APP_PATTERN_MORSE_SOS  6U
+#define APP_PATTERN_MORSE_SOS 6U
 
 /**
  * @brief Number of defined patterns, also used as the wrap limit.
@@ -136,7 +136,7 @@
  *          short-press cycle and Comms rejects any pattern of this value or
  *          above, so the enumerator count must match the pattern list.
  */
-#define APP_PATTERN_COUNT      7U
+#define APP_PATTERN_COUNT 7U
 
 /**
  * @brief Smallest accepted pattern period in milliseconds (50 ms).
@@ -144,7 +144,7 @@
  *          collapse to a few ticks.  Comms rejects SetLed and SetLedAll
  *          requests outside the range and applies no clamping of its own.
  */
-#define APP_LED_MIN_PERIOD     50U
+#define APP_LED_MIN_PERIOD 50U
 
 /**
  * @brief Largest accepted pattern period in milliseconds (5000 ms).
@@ -154,7 +154,7 @@
  * @note Comms additionally requires the period to be a multiple of 10 ms for
  *       HWLINK requests.  The LED task does not check that.
  */
-#define APP_LED_MAX_PERIOD     5000U
+#define APP_LED_MAX_PERIOD 5000U
 
 /**
  * @brief Period applied to LD1 at start-up and by a long button press.
@@ -299,7 +299,7 @@ bool led_post_set_all(uint8_t pattern, uint16_t period);
  *        decides which value to send from the debounced press duration.
  * @see led_post_set_all
  */
-bool led_post_button(uint8_t press);       /* 1 = short, 2 = long */
+bool led_post_button(uint8_t press); /* 1 = short, 2 = long */
 
 /**
  * @brief Release the latched fault and watchdog indication on LD3 (LED-005).

@@ -60,7 +60,7 @@
  *       PA5 requires a new port macro and a matching clock enable.
  * @see APP_LED1_PIN
  */
-#define APP_LED1_PORT           GPIOB
+#define APP_LED1_PORT GPIOB
 
 /**
  * @brief Pin mask of LD1 on @ref APP_LED1_PORT (PB0).
@@ -68,7 +68,7 @@
  *          user indicator: it starts with @ref APP_PATTERN_HEARTBEAT and is
  *          the LED steered by a short press of B1.
  */
-#define APP_LED1_PIN            GPIO_PIN_0
+#define APP_LED1_PIN GPIO_PIN_0
 
 /**
  * @brief GPIO port of LD2, the blue user LED.
@@ -76,7 +76,7 @@
  *          @c GPIO_Init() call in @ref app_leds_init covers it.
  * @see APP_LED2_PIN
  */
-#define APP_LED2_PORT           GPIOB
+#define APP_LED2_PORT GPIOB
 
 /**
  * @brief Pin mask of LD2 on @ref APP_LED2_PORT (PB7).
@@ -84,7 +84,7 @@
  *          with LD1: @ref APP_PATTERN_CHASE set on either one is applied to
  *          both, and LD2 starts in @ref APP_PATTERN_OFF.
  */
-#define APP_LED2_PIN            GPIO_PIN_7
+#define APP_LED2_PIN GPIO_PIN_7
 
 /**
  * @brief GPIO port of LD3, the red status/error LED.
@@ -96,7 +96,7 @@
  *          edit there.
  * @see APP_LED3_PIN
  */
-#define APP_LED3_PORT           GPIOB
+#define APP_LED3_PORT GPIOB
 
 /**
  * @brief Pin mask of LD3 on @ref APP_LED3_PORT (PB14).
@@ -109,7 +109,7 @@
  *       @ref led_post_set passes @c force.  The fault path also flashes LD3
  *       three times before resetting (DGEN-004).
  */
-#define APP_LED3_PIN            GPIO_PIN_14
+#define APP_LED3_PIN GPIO_PIN_14
 
 /**
  * @brief GPIO port of B1, the blue user button.
@@ -117,7 +117,7 @@
  *          port clock and configures the pin as a pulled-down input.
  * @see APP_BTN1_PIN
  */
-#define APP_BTN1_PORT           GPIOC
+#define APP_BTN1_PORT GPIOC
 
 /**
  * @brief Pin mask of B1 on @ref APP_BTN1_PORT (PC13).
@@ -133,7 +133,7 @@
  *          must stay configured with a pull-down; a pull-up would invert the
  *          level and read as a permanent press.
  */
-#define APP_BTN1_PIN            GPIO_PIN_13
+#define APP_BTN1_PIN GPIO_PIN_13
 
 /**
  * @brief APB1 prescaler of the 216 MHz clock tree, HCLK divided by 4.
@@ -144,7 +144,7 @@
  *       IWDG and USART3.  Raising PCLK1 beyond the limit violates the
  *       datasheet maximum for that bus.
  */
-#define APP_APB1_PRESCALER      RCC_HCLK_DIV4
+#define APP_APB1_PRESCALER RCC_HCLK_DIV4
 
 /**
  * @brief APB2 prescaler of the 216 MHz clock tree, HCLK divided by 2.
@@ -156,7 +156,7 @@
  *       maximum, so the divider cannot be reduced; raising it would slow
  *       SYSCFG and USART access.
  */
-#define APP_APB2_PRESCALER      RCC_HCLK_DIV2
+#define APP_APB2_PRESCALER RCC_HCLK_DIV2
 
 #endif /* APP_BOARD_H */
 

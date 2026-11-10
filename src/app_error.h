@@ -34,14 +34,14 @@
  *          app_fault_is_valid() reports a recorded fault.  LD3 is driven
  *          solid while this bit is set.
  */
-#define APP_ERROR_FAULT      (1UL << 0U)
+#define APP_ERROR_FAULT (1UL << 0U)
 
 /**
  * @brief Last reset was caused by the IWDG or WWDG (LED-005).
  * @details Set by main() before the scheduler starts when
  *          app_reset_was_error() reports a watchdog reset.
  */
-#define APP_ERROR_WATCHDOG   (1UL << 1U)
+#define APP_ERROR_WATCHDOG (1UL << 1U)
 
 /**
  * @brief Pending-slot health check failed (HLT-003).
@@ -49,7 +49,7 @@
  *          this bit is set, and the bit survives ClearFault so a failed
  *          pending-slot health check is not hidden (LED-005).
  */
-#define APP_ERROR_HEALTH     (1UL << 2U)
+#define APP_ERROR_HEALTH (1UL << 2U)
 
 /**
  * @brief Global latch holding a bit mask of APP_ERROR_* values.

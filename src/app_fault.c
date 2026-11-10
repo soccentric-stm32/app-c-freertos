@@ -112,8 +112,7 @@ static uint32_t app_boot_id __attribute__((section(".noinit")));
  * @see APP_NOINIT_ADDR
  * @see APP_NOINIT_SIZE
  */
-_Static_assert(sizeof(app_fault_record_t) + sizeof(uint32_t) <= APP_NOINIT_SIZE,
-               "A-9: fault record exceeds the reserved no-init window");
+_Static_assert(sizeof(app_fault_record_t) + sizeof(uint32_t) <= APP_NOINIT_SIZE, "A-9: fault record exceeds the reserved no-init window");
 
 /**
  * @brief Stable ASCII names for @ref app_fault_reason_t, indexed by value.
@@ -131,17 +130,7 @@ _Static_assert(sizeof(app_fault_record_t) + sizeof(uint32_t) <= APP_NOINIT_SIZE,
  * @see app_fault_reason_text
  * @see app_fault_reason_t
  */
-static const char *const fault_reason_names[] = {
-    "none",
-    "hard_fault",
-    "mem_manage",
-    "bus_fault",
-    "usage_fault",
-    "assert",
-    "stack_overflow",
-    "malloc_failed",
-    "startup"
-};
+static const char *const fault_reason_names[] = {"none", "hard_fault", "mem_manage", "bus_fault", "usage_fault", "assert", "stack_overflow", "malloc_failed", "startup"};
 
 /**
  * @brief Copy a string into a fixed-size record field, keeping only the
@@ -175,19 +164,24 @@ static void fault_copy(char *dst, uint32_t dst_size, const char *src)
 {
     uint32_t i = 0U;
 
-    if (dst_size == 0U) {
+    if(dst_size == 0U)
+    {
         return;
     }
-    if (src != NULL) {
+    if(src != NULL)
+    {
         /* __FILE__ may be an absolute build path.  Keep the basename so the
          * 31-character field identifies the file (DGEN-004). */
         const char *base = src;
-        for (const char *p = src; *p != '\0'; p++) {
-            if (*p == '/' || *p == '\\') {
+        for(const char *p = src; *p != '\0'; p++)
+        {
+            if(*p == '/' || *p == '\\')
+            {
                 base = p + 1;
             }
         }
-        while ((i + 1U) < dst_size && base[i] != '\0') {
+        while((i + 1U) < dst_size && base[i] != '\0')
+        {
             dst[i] = base[i];
             i++;
         }
@@ -216,7 +210,8 @@ static void fault_copy(char *dst, uint32_t dst_size, const char *src)
 void app_fault_boot_start(void)
 {
     app_boot_id++;
-    if (app_boot_id == 0U) {
+    if(app_boot_id == 0U)
+    {
         app_boot_id = 1U;
     }
 }
@@ -239,11 +234,7 @@ void app_fault_boot_start(void)
  * @see app_fault_is_current_boot
  * @see app_fault_is_previous_boot
  */
-bool app_fault_is_valid(void)
-{
-    return g_app_fault.magic == APP_FAULT_MAGIC &&
-           g_app_fault.reason <= (uint32_t)APP_FAULT_STARTUP;
-}
+bool app_fault_is_valid(void) { return g_app_fault.magic == APP_FAULT_MAGIC && g_app_fault.reason <= (uint32_t)APP_FAULT_STARTUP; }
 
 /**
  * @brief Report whether the valid record was written during this boot.
@@ -258,10 +249,7 @@ bool app_fault_is_valid(void)
  * @note Reads only, no blocking, no allocation; safe from tasks and ISRs.
  * @see app_fault_is_previous_boot
  */
-bool app_fault_is_current_boot(void)
-{
-    return app_fault_is_valid() && g_app_fault.boot_id == app_boot_id;
-}
+bool app_fault_is_current_boot(void) { return app_fault_is_valid() && g_app_fault.boot_id == app_boot_id; }
 
 /**
  * @brief Report whether the valid record was written during the previous boot.
@@ -281,7 +269,8 @@ bool app_fault_is_current_boot(void)
 bool app_fault_is_previous_boot(void)
 {
     uint32_t previous = app_boot_id - 1U;
-    if (previous == 0U) {
+    if(previous == 0U)
+    {
         previous = 0xFFFFFFFFUL;
     }
     return app_fault_is_valid() && g_app_fault.boot_id == previous;
@@ -305,8 +294,8 @@ bool app_fault_is_previous_boot(void)
  */
 const char *app_fault_reason_text(app_fault_reason_t reason)
 {
-    if ((uint32_t)reason >= (sizeof(fault_reason_names) /
-                             sizeof(fault_reason_names[0]))) {
+    if((uint32_t)reason >= (sizeof(fault_reason_names) / sizeof(fault_reason_names[0])))
+    {
         return "unknown";
     }
     return fault_reason_names[reason];
@@ -325,10 +314,7 @@ const char *app_fault_reason_text(app_fault_reason_t reason)
  *          no-init RAM held.
  * @see app_fault_file
  */
-const char *app_fault_task(void)
-{
-    return g_app_fault.task;
-}
+const char *app_fault_task(void) { return g_app_fault.task; }
 
 /**
  * @brief Return the source-file basename stored in the fault record.
@@ -343,10 +329,7 @@ const char *app_fault_task(void)
  *          no-init RAM held.
  * @see app_fault_task
  */
-const char *app_fault_file(void)
-{
-    return g_app_fault.file;
-}
+const char *app_fault_file(void) { return g_app_fault.file; }
 
 /**
  * @brief Write a complete fault record for the next boot.
@@ -401,25 +384,22 @@ const char *app_fault_file(void)
  * @see app_fault_fatal
  * @see app_fault_is_valid
  */
-void app_fault_save(app_fault_reason_t reason, uint32_t cfsr, uint32_t hfsr,
-                    uint32_t mmfar, uint32_t bfar, uint32_t pc, uint32_t lr,
-                    uint32_t psr, const char *task, const char *file,
-                    uint32_t line)
+void app_fault_save(app_fault_reason_t reason, uint32_t cfsr, uint32_t hfsr, uint32_t mmfar, uint32_t bfar, uint32_t pc, uint32_t lr, uint32_t psr, const char *task, const char *file, uint32_t line)
 {
     /* Invalidate first so a reset in the middle of the copy is not mistaken
      * for a complete record. */
     g_app_fault.magic = 0U;
     __DMB();
 
-    g_app_fault.reason = (uint32_t)reason;
-    g_app_fault.cfsr = cfsr;
-    g_app_fault.hfsr = hfsr;
-    g_app_fault.mmfar = mmfar;
-    g_app_fault.bfar = bfar;
-    g_app_fault.pc = pc;
-    g_app_fault.lr = lr;
-    g_app_fault.psr = psr;
-    g_app_fault.line = line;
+    g_app_fault.reason  = (uint32_t)reason;
+    g_app_fault.cfsr    = cfsr;
+    g_app_fault.hfsr    = hfsr;
+    g_app_fault.mmfar   = mmfar;
+    g_app_fault.bfar    = bfar;
+    g_app_fault.pc      = pc;
+    g_app_fault.lr      = lr;
+    g_app_fault.psr     = psr;
+    g_app_fault.line    = line;
     g_app_fault.boot_id = app_boot_id;
     fault_copy(g_app_fault.task, sizeof(g_app_fault.task), task);
     fault_copy(g_app_fault.file, sizeof(g_app_fault.file), file);
@@ -492,19 +472,23 @@ static void fault_delay_ms(uint32_t ms)
      * instead of spinning for cycles*4 iterations (the IWDG would fire
      * first). */
     uint32_t probe = DWT->CYCCNT;
-    for (volatile uint32_t i = 0U; i < 100U; i++) {
+    for(volatile uint32_t i = 0U; i < 100U; i++)
+    {
         __NOP();
     }
-    if (DWT->CYCCNT == probe) {
-        for (volatile uint32_t i = 0U; i < (ms * 20000U); i++) {
+    if(DWT->CYCCNT == probe)
+    {
+        for(volatile uint32_t i = 0U; i < (ms * 20000U); i++)
+        {
             __NOP();
         }
         return;
     }
 
     uint32_t cycles = (SystemCoreClock / 1000U) * ms;
-    uint32_t start = DWT->CYCCNT;
-    while ((DWT->CYCCNT - start) < cycles) {
+    uint32_t start  = DWT->CYCCNT;
+    while((DWT->CYCCNT - start) < cycles)
+    {
         __NOP();
     }
 }
@@ -522,10 +506,7 @@ static void fault_delay_ms(uint32_t ms)
  *       matching edit here; see the warning on @ref APP_LED3_PORT.
  * @see app_fault_show_and_reset
  */
-static void fault_led3(bool on)
-{
-    GPIOB->BSRR = on ? APP_LED3_PIN : ((uint32_t)APP_LED3_PIN << 16U);
-}
+static void fault_led3(bool on) { GPIOB->BSRR = on ? APP_LED3_PIN : ((uint32_t)APP_LED3_PIN << 16U); }
 
 /**
  * @brief Flash the fault pattern on LD3 and reset the MCU.
@@ -584,8 +565,10 @@ void app_fault_show_and_reset(void)
     __DSB();
 
     /* Three short flashes, a pause, repeat; roughly 2 s in total. */
-    for (uint32_t cycle = 0U; cycle < 2U; cycle++) {
-        for (uint32_t flash = 0U; flash < 3U; flash++) {
+    for(uint32_t cycle = 0U; cycle < 2U; cycle++)
+    {
+        for(uint32_t flash = 0U; flash < 3U; flash++)
+        {
             fault_led3(true);
             fault_delay_ms(100U);
             fault_led3(false);
@@ -595,7 +578,8 @@ void app_fault_show_and_reset(void)
     }
 
     NVIC_SystemReset();
-    for (;;) {
+    for(;;)
+    {
         __NOP();
     }
 }
@@ -623,8 +607,7 @@ void app_fault_show_and_reset(void)
  * @see app_fault_save
  * @see app_fault_show_and_reset
  */
-void app_fault_fatal(app_fault_reason_t reason, const char *task,
-                     const char *file, uint32_t line)
+void app_fault_fatal(app_fault_reason_t reason, const char *task, const char *file, uint32_t line)
 {
     app_fault_save(reason, 0U, 0U, 0U, 0U, 0U, 0U, 0U, task, file, line);
     app_fault_show_and_reset();
@@ -663,23 +646,20 @@ void app_fault_fatal(app_fault_reason_t reason, const char *task,
  * @see app_fault_save
  * @see app_fault_show_and_reset
  */
-__attribute__((used, noreturn))
-void app_fault_handler_c(uint32_t *frame, uint32_t reason)
+__attribute__((used, noreturn)) void app_fault_handler_c(uint32_t *frame, uint32_t reason)
 {
     /* A stack-overflow fault can leave MSP/PSP outside RAM; dereferencing
      * such a frame double-faults into lockup.  Only read the stacked PC/LR
      * when the whole exception frame lies in internal RAM. */
-    uint32_t pc = 0U, lr = 0U, psr = 0U;
+    uint32_t  pc = 0U, lr = 0U, psr = 0U;
     uintptr_t base = (uintptr_t)frame;
-    if (base >= 0x20000000UL && base <= 0x20080000UL &&
-        (base & 3U) == 0U && (base + (8U * 4U)) <= 0x20080000UL) {
+    if(base >= 0x20000000UL && base <= 0x20080000UL && (base & 3U) == 0U && (base + (8U * 4U)) <= 0x20080000UL)
+    {
         pc  = frame[6];
         lr  = frame[5];
         psr = frame[7];
     }
-    app_fault_save((app_fault_reason_t)reason,
-                   SCB->CFSR, SCB->HFSR, SCB->MMFAR, SCB->BFAR,
-                   pc, lr, psr, NULL, NULL, 0UL);
+    app_fault_save((app_fault_reason_t)reason, SCB->CFSR, SCB->HFSR, SCB->MMFAR, SCB->BFAR, pc, lr, psr, NULL, NULL, 0UL);
     app_fault_show_and_reset();
 }
 
@@ -707,17 +687,18 @@ void app_fault_handler_c(uint32_t *frame, uint32_t reason)
  *          stack that just faulted.
  * @see app_fault_handler_c
  */
-#define APP_DEFINE_FAULT_HANDLER(name, reason)                              \
-    __attribute__((naked, noreturn)) void name(void)                        \
-    {                                                                       \
-        __asm volatile (                                                    \
-            "tst lr, #4\n\t"                                                \
-            "ite eq\n\t"                                                    \
-            "mrseq r0, msp\n\t"                                             \
-            "mrsne r0, psp\n\t"                                             \
-            "movs r1, %0\n\t"                                               \
-            "b app_fault_handler_c\n\t"                                     \
-            : : "I"(reason) : "r0", "r1", "memory");                        \
+#define APP_DEFINE_FAULT_HANDLER(name, reason)                                                                                                                                                                                                                                                             \
+    __attribute__((naked, noreturn)) void name(void)                                                                                                                                                                                                                                                       \
+    {                                                                                                                                                                                                                                                                                                      \
+        __asm volatile("tst lr, #4\n\t"                                                                                                                                                                                                                                                                    \
+                       "ite eq\n\t"                                                                                                                                                                                                                                                                        \
+                       "mrseq r0, msp\n\t"                                                                                                                                                                                                                                                                 \
+                       "mrsne r0, psp\n\t"                                                                                                                                                                                                                                                                 \
+                       "movs r1, %0\n\t"                                                                                                                                                                                                                                                                   \
+                       "b app_fault_handler_c\n\t"                                                                                                                                                                                                                                                         \
+                       :                                                                                                                                                                                                                                                                                   \
+                       : "I"(reason)                                                                                                                                                                                                                                                                       \
+                       : "r0", "r1", "memory");                                                                                                                                                                                                                                                            \
     }
 
 /**
@@ -734,7 +715,7 @@ void app_fault_handler_c(uint32_t *frame, uint32_t reason)
  * @see APP_DEFINE_FAULT_HANDLER
  * @see app_fault_handler_c
  */
-APP_DEFINE_FAULT_HANDLER(HardFault_Handler,  APP_FAULT_HARDFAULT)
-APP_DEFINE_FAULT_HANDLER(MemManage_Handler,  APP_FAULT_MEMMANAGE)
-APP_DEFINE_FAULT_HANDLER(BusFault_Handler,   APP_FAULT_BUSFAULT)
+APP_DEFINE_FAULT_HANDLER(HardFault_Handler, APP_FAULT_HARDFAULT)
+APP_DEFINE_FAULT_HANDLER(MemManage_Handler, APP_FAULT_MEMMANAGE)
+APP_DEFINE_FAULT_HANDLER(BusFault_Handler, APP_FAULT_BUSFAULT)
 APP_DEFINE_FAULT_HANDLER(UsageFault_Handler, APP_FAULT_USAGEFAULT)

@@ -60,7 +60,7 @@
  *       and nothing else; the region number is not stored anywhere for later
  *       reference.
  */
-#define DMA_MPU_REGION       6U
+#define DMA_MPU_REGION 6U
 /**
  * @brief Base address of the non-cacheable DMA window (SRAM2 origin).
  * @details 0x2007C000 is @c ORIGIN(SRAM2) in @c ld/app.ld, whose @c LENGTH is
@@ -80,7 +80,7 @@
  *          SRAM2 in the linker script without editing this macro silently
  *          leaves the DMA buffers cacheable again.
  */
-#define DMA_MPU_BASE         0x2007C000UL  /* SRAM2, 16 KB                  */
+#define DMA_MPU_BASE 0x2007C000UL /* SRAM2, 16 KB                  */
 /**
  * @brief @c MPU_RASR @c SIZE field encoding for the 16 KB DMA window.
  * @details The ARMv7-M @c SIZE field holds log2(size_in_bytes) - 1, not
@@ -95,7 +95,7 @@
  *          twice or half the intended range and part of @c .dma_buffer becomes
  *          cacheable, or unrelated SRAM is made non-cacheable.
  */
-#define DMA_MPU_SIZE_LOG2    13U          /* 2^(13+1) = 16 KB             */
+#define DMA_MPU_SIZE_LOG2 13U /* 2^(13+1) = 16 KB             */
 
 /**
  * @brief Configure the non-cacheable DMA MPU region and enable the caches.
@@ -178,15 +178,10 @@ void app_cache_mpu_init(void)
     __DSB();
     __ISB();
 
-    MPU->RNR = DMA_MPU_REGION;
-    MPU->RBAR = DMA_MPU_BASE | (DMA_MPU_REGION << MPU_RBAR_REGION_Pos) |
-                MPU_RBAR_VALID_Msk;
+    MPU->RNR  = DMA_MPU_REGION;
+    MPU->RBAR = DMA_MPU_BASE | (DMA_MPU_REGION << MPU_RBAR_REGION_Pos) | MPU_RBAR_VALID_Msk;
     /* XN=1 (not executable), AP=full access, TEX=1, C=0, B=0, S=0. */
-    MPU->RASR = MPU_RASR_XN_Msk |
-                (3UL << MPU_RASR_AP_Pos) |
-                (1UL << MPU_RASR_TEX_Pos) |
-                (DMA_MPU_SIZE_LOG2 << MPU_RASR_SIZE_Pos) |
-                MPU_RASR_ENABLE_Msk;
+    MPU->RASR = MPU_RASR_XN_Msk | (3UL << MPU_RASR_AP_Pos) | (1UL << MPU_RASR_TEX_Pos) | (DMA_MPU_SIZE_LOG2 << MPU_RASR_SIZE_Pos) | MPU_RASR_ENABLE_Msk;
 
     MPU->CTRL = MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
     __DSB();

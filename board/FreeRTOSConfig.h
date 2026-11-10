@@ -61,7 +61,7 @@
  *          +4, Button +3 and LED +2 (DRT-010) - so the IWDG supervision of
  *          DRT-012 depends on preemption rather than on voluntary yields.
  */
-#define configUSE_PREEMPTION                    1
+#define configUSE_PREEMPTION 1
 
 /**
  * Use the port's CLZ-based ready-list search (1 = enabled).
@@ -82,7 +82,7 @@
  *          idle would require a low-power time base and would stretch every
  *          tick-based timeout; the firmware also stays at 216 MHz (DGEN-003).
  */
-#define configUSE_TICKLESS_IDLE                 0
+#define configUSE_TICKLESS_IDLE 0
 
 /**
  * Core clock in Hz: 216000000 (216 MHz, DGEN-003).
@@ -92,7 +92,7 @@
  *          bypass).  A mismatch scales the tick period and with it every
  *          pdMS_TO_TICKS() timeout in the firmware.
  */
-#define configCPU_CLOCK_HZ                      216000000UL /* DGEN-003 */
+#define configCPU_CLOCK_HZ 216000000UL /* DGEN-003 */
 
 /**
  * Tick frequency in Hz: 1 kHz from SysTick (DRT-001).
@@ -105,7 +105,7 @@
  *          correct across the wrap (DRT-012).  SysTick belongs to the kernel,
  *          so the HAL time base runs on TIM6 instead (DGEN-006).
  */
-#define configTICK_RATE_HZ                      ((TickType_t)1000) /* DRT-001 */
+#define configTICK_RATE_HZ ((TickType_t)1000) /* DRT-001 */
 
 /**
  * Number of priority levels: 8, numbered 0 (idle) to 7 (highest).
@@ -116,7 +116,7 @@
  *          32.  A task created with a higher priority trips configASSERT and
  *          is then clamped to 7.
  */
-#define configMAX_PRIORITIES                    8
+#define configMAX_PRIORITIES 8
 
 /**
  * Idle task stack depth: 256 StackType_t words, that is 1 KiB.
@@ -128,7 +128,7 @@
  *          convenient lower bound for the application stacks (all four are
  *          384 words or more).
  */
-#define configMINIMAL_STACK_SIZE                ((uint16_t)256)
+#define configMINIMAL_STACK_SIZE ((uint16_t)256)
 
 /**
  * Task name capacity in bytes including the NUL terminator: 15 characters.
@@ -138,7 +138,7 @@
  *          is deliberately the same width, so a task name copied into the
  *          no-init fault record is never truncated (DGEN-004).
  */
-#define configMAX_TASK_NAME_LEN                 16
+#define configMAX_TASK_NAME_LEN 16
 
 /**
  * Width of TickType_t: 0 selects 32 bits, 1 would select 16 bits.
@@ -147,7 +147,7 @@
  *          16-bit ticks would wrap every 65.5 s and silently break that
  *          arithmetic, so this must stay 0 for DRT-012.
  */
-#define configUSE_16_BIT_TICKS                  0
+#define configUSE_16_BIT_TICKS 0
 
 /**
  * Let the idle task yield to other priority-0 tasks (1 = enabled).
@@ -156,7 +156,7 @@
  *          the task set.  The standard FreeRTOS behaviour is kept so that
  *          adding a priority-0 task later does not change scheduling again.
  */
-#define configIDLE_SHOULD_YIELD                 1
+#define configIDLE_SHOULD_YIELD 1
 
 /**
  * Round-robin time slicing between equal priorities (1 = enabled).
@@ -166,7 +166,7 @@
  *          at most one extra context switch per tick per equal-priority group;
  *          tasks that block on a queue or notification are unaffected.
  */
-#define configUSE_TIME_SLICING                  1
+#define configUSE_TIME_SLICING 1
 
 /* --- memory (DRT-001, DRT-004) ------------------------------------------- */
 /**
@@ -179,7 +179,7 @@
  *          the heap; a late creation would allocate after start-up, which
  *          DRT-004 forbids.
  */
-#define configSUPPORT_STATIC_ALLOCATION         0
+#define configSUPPORT_STATIC_ALLOCATION 0
 
 /**
  * Dynamic (heap) task/queue creation APIs (1 = compiled).
@@ -190,7 +190,7 @@
  *          and timer service tasks and the timer command queue from the same
  *          heap.
  */
-#define configSUPPORT_DYNAMIC_ALLOCATION        1
+#define configSUPPORT_DYNAMIC_ALLOCATION 1
 
 /**
  * Size of the heap_4 arena in bytes.
@@ -210,7 +210,7 @@
  *          with an unrelated-looking error.
  * @see configAPPLICATION_ALLOCATED_HEAP
  */
-#define configTOTAL_HEAP_SIZE                   APP_RTOS_HEAP_SIZE
+#define configTOTAL_HEAP_SIZE APP_RTOS_HEAP_SIZE
 
 /**
  * Who provides the heap array (0 = heap_4.c provides it).
@@ -222,7 +222,7 @@
  *          application to define ucHeap, for example to place the heap in a
  *          particular memory region.
  */
-#define configAPPLICATION_ALLOCATED_HEAP        0
+#define configAPPLICATION_ALLOCATED_HEAP 0
 
 /* --- kernel objects ------------------------------------------------------ */
 /**
@@ -233,7 +233,7 @@
  *          on so a mutex can be added without rebuilding the kernel
  *          configuration; it costs two words per TCB plus the mutex code.
  */
-#define configUSE_MUTEXES                       1
+#define configUSE_MUTEXES 1
 
 /**
  * Recursive mutexes (0 = not compiled).
@@ -241,7 +241,7 @@
  *          and the recursive give/take paths are left out.  Enabling it also
  *          requires configUSE_MUTEXES, which is on.
  */
-#define configUSE_RECURSIVE_MUTEXES             0
+#define configUSE_RECURSIVE_MUTEXES 0
 
 /**
  * Counting semaphores (0 = not compiled).
@@ -249,7 +249,7 @@
  *          (DRT-011), so xSemaphoreCreateCounting() is not available and the
  *          counting code is absent from the image.
  */
-#define configUSE_COUNTING_SEMAPHORES           0
+#define configUSE_COUNTING_SEMAPHORES 0
 
 /**
  * Queue sets (0 = not compiled).
@@ -257,7 +257,7 @@
  *          queue and the LED task its message queue.  Leaving the feature out
  *          removes the set/read/remove code and the extra list members.
  */
-#define configUSE_QUEUE_SETS                    0
+#define configUSE_QUEUE_SETS 0
 
 /**
  * Queue registry entries: 0, so no queue names are stored.
@@ -266,7 +266,7 @@
  *          its name pointers are saved.  Status reports tasks, not queues
  *          (DRT-013), so no requirement depends on it.
  */
-#define configQUEUE_REGISTRY_SIZE               0
+#define configQUEUE_REGISTRY_SIZE 0
 
 /**
  * Task notifications (1 = enabled, DRT-011).
@@ -278,7 +278,7 @@
  *          semaphores a conventional design would need and add about 8 bytes
  *          to each TCB.
  */
-#define configUSE_TASK_NOTIFICATIONS            1   /* DRT-011 */
+#define configUSE_TASK_NOTIFICATIONS 1 /* DRT-011 */
 
 /* --- timers -------------------------------------------------------------- */
 /**
@@ -291,7 +291,7 @@
  *          for the standard task set and costs one TCB, one 1 KiB stack and
  *          the queue out of configTOTAL_HEAP_SIZE.
  */
-#define configUSE_TIMERS                        1
+#define configUSE_TIMERS 1
 
 /**
  * Priority of the timer service task: 2.
@@ -301,7 +301,7 @@
  *          software timer callback would execute at this priority, so it must
  *          stay short if one is ever added.
  */
-#define configTIMER_TASK_PRIORITY               2
+#define configTIMER_TASK_PRIORITY 2
 
 /**
  * Timer command queue length in messages: 8.
@@ -311,7 +311,7 @@
  *          build; a full queue makes a timer API call fail with pdFAIL
  *          instead of blocking.
  */
-#define configTIMER_QUEUE_LENGTH                8
+#define configTIMER_QUEUE_LENGTH 8
 
 /**
  * Timer service task stack depth: 256 words, that is 1 KiB.
@@ -319,7 +319,7 @@
  *          application callback at present, so 1 KiB is ample; the stack is
  *          charged to configTOTAL_HEAP_SIZE like every other one.
  */
-#define configTIMER_TASK_STACK_DEPTH            256
+#define configTIMER_TASK_STACK_DEPTH 256
 
 /* --- hooks (DRT-002) ----------------------------------------------------- */
 /**
@@ -332,7 +332,7 @@
  *          one does not; its purpose is to make a heap shortfall visible
  *          instead of leaving a NULL handle behind.
  */
-#define configUSE_MALLOC_FAILED_HOOK            1
+#define configUSE_MALLOC_FAILED_HOOK 1
 
 /**
  * Stack overflow detection method 2 (DRT-002).
@@ -345,7 +345,7 @@
  *          offending task name and resets (DGEN-004).  The check runs in the
  *          context-switch path and costs a few instructions per switch.
  */
-#define configCHECK_FOR_STACK_OVERFLOW          2
+#define configCHECK_FOR_STACK_OVERFLOW 2
 
 /**
  * Application idle hook (0 = no vApplicationIdleHook()).
@@ -354,7 +354,7 @@
  *          (DGEN-003), and the IWDG is refreshed by the Health task, not from
  *          idle (DRT-012).  The hook is therefore not compiled.
  */
-#define configUSE_IDLE_HOOK                     0
+#define configUSE_IDLE_HOOK 0
 
 /**
  * Application tick hook (0 = no vApplicationTickHook()).
@@ -363,7 +363,7 @@
  *          by tasks (DRT-012), and the HAL time base is on TIM6 (DGEN-006), so
  *          the hook is not compiled.
  */
-#define configUSE_TICK_HOOK                     0
+#define configUSE_TICK_HOOK 0
 
 /* --- stack statistics (DRT-013) ------------------------------------------ */
 /**
@@ -375,7 +375,7 @@
  *          TCB (TCB and task numbers) and the code that fills the structure,
  *          and it also compiles prvTaskCheckFreeStackSpace().
  */
-#define configUSE_TRACE_FACILITY                1
+#define configUSE_TRACE_FACILITY 1
 
 /**
  * Record each stack's high address in the TCB (1 = enabled).
@@ -387,7 +387,7 @@
  *          pxStack by scanning for the fill pattern; nothing depends on the
  *          extra field at run time.
  */
-#define configRECORD_STACK_HIGH_ADDRESS         1
+#define configRECORD_STACK_HIGH_ADDRESS 1
 
 /**
  * Type of stack depths and of the reported high-water mark: uint16_t.
@@ -398,7 +398,7 @@
  *          Comms stack, so the Status high-water marks of DRT-013 are exact
  *          word counts.  A larger depth would be truncated silently.
  */
-#define configSTACK_DEPTH_TYPE                  uint16_t
+#define configSTACK_DEPTH_TYPE uint16_t
 
 /* --- interrupt priorities (DRT-003) -------------------------------------- */
 /* 4 priority bits on the F767. Kernel and every ISR that uses a FromISR
@@ -413,7 +413,7 @@
  *          shifted values below are derived from it, so it must stay in step
  *          with the device header.
  */
-#define APP_NVIC_PRIO_BITS                      4U
+#define APP_NVIC_PRIO_BITS 4U
 
 /**
  * Number of priority bits known to the FreeRTOS port.
@@ -425,7 +425,7 @@
  *          undefined; defining it from APP_NVIC_PRIO_BITS keeps one source for
  *          the number, which must match the 4 bits the STM32F767 implements.
  */
-#define configPRIO_BITS                         APP_NVIC_PRIO_BITS
+#define configPRIO_BITS APP_NVIC_PRIO_BITS
 
 /**
  * Lowest interrupt urgency as an unshifted library priority number: 15.
@@ -460,8 +460,7 @@
  *          lowest urgency.  The shift converts the library number into the bit
  *          position of the implemented priority bits in the register.
  */
-#define configKERNEL_INTERRUPT_PRIORITY \
-    (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
+#define configKERNEL_INTERRUPT_PRIORITY (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
 /**
  * Shifted syscall threshold: 5 << (8 - 4) = 0x50.
@@ -471,8 +470,7 @@
  *          and lets the more urgent ones keep running.  DRT-003 holds only
  *          while every kernel-aware ISR keeps a priority number of 5 or more.
  */
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY \
-    (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
 /* --- debug (DRT-002) ----------------------------------------------------- */
 /**
@@ -506,7 +504,14 @@ extern void app_fault_assert(const char *file, int line);
  *          fault pattern for about 2 s and resets the MCU.
  * @see app_fault_show_and_reset
  */
-#define configASSERT(x) do { if ((x) == 0) { app_fault_assert(__FILE__, __LINE__); } } while (0)
+#define configASSERT(x)                                                                                                                                                                                                                                                                                    \
+    do                                                                                                                                                                                                                                                                                                     \
+    {                                                                                                                                                                                                                                                                                                      \
+        if((x) == 0)                                                                                                                                                                                                                                                                                       \
+        {                                                                                                                                                                                                                                                                                                  \
+            app_fault_assert(__FILE__, __LINE__);                                                                                                                                                                                                                                                          \
+        }                                                                                                                                                                                                                                                                                                  \
+    } while(0)
 
 /* --- port mapping (CM7 GCC port, DRT-001) -------------------------------- */
 /**
@@ -517,7 +522,7 @@ extern void app_fault_assert(const char *file, int line);
  *          @c SVC_Handler itself, or this mapping is lost and the scheduler
  *          never starts.
  */
-#define vPortSVCHandler    SVC_Handler
+#define vPortSVCHandler SVC_Handler
 
 /**
  * Route the kernel's PendSV handler onto the CMSIS vector name.
@@ -548,7 +553,7 @@ extern void app_fault_assert(const char *file, int line);
  *          DRT-010 is fixed at creation time.  Leaving it out removes the
  *          priority-change path and its ready-list re-insertion.
  */
-#define INCLUDE_vTaskPrioritySet            0
+#define INCLUDE_vTaskPrioritySet 0
 
 /**
  * uxTaskPriorityGet() (0 = not compiled).
@@ -556,7 +561,7 @@ extern void app_fault_assert(const char *file, int line);
  *          which configUSE_TRACE_FACILITY already provides, so no separate
  *          query function is needed.
  */
-#define INCLUDE_uxTaskPriorityGet           0
+#define INCLUDE_uxTaskPriorityGet 0
 
 /**
  * vTaskDelete() (0 = not compiled).
@@ -565,7 +570,7 @@ extern void app_fault_assert(const char *file, int line);
  *          out.  A failed health check resets the MCU instead of deleting
  *          tasks (DRT-012).
  */
-#define INCLUDE_vTaskDelete                 0
+#define INCLUDE_vTaskDelete 0
 
 /**
  * vTaskSuspend() and vTaskResume() (1 = compiled).
@@ -575,7 +580,7 @@ extern void app_fault_assert(const char *file, int line);
  *          because it lets uxTaskGetSystemState() report the suspended state
  *          in the Status task table (DRT-013).
  */
-#define INCLUDE_vTaskSuspend                1
+#define INCLUDE_vTaskSuspend 1
 
 /**
  * vTaskDelayUntil() (1 = compiled).
@@ -584,7 +589,7 @@ extern void app_fault_assert(const char *file, int line);
  *          fixed period (DRT-011).  The switch is enabled but unused, and it
  *          costs a small amount of flash.
  */
-#define INCLUDE_vTaskDelayUntil             1
+#define INCLUDE_vTaskDelayUntil 1
 
 /**
  * vTaskDelay() (1 = compiled).
@@ -592,7 +597,7 @@ extern void app_fault_assert(const char *file, int line);
  *          notifications, queues and the USART3 completion handle instead of
  *          sleeping for a fixed time.  The switch costs a few bytes of flash.
  */
-#define INCLUDE_vTaskDelay                  1
+#define INCLUDE_vTaskDelay 1
 
 /**
  * xTaskGetSchedulerState() (1 = compiled).
@@ -601,7 +606,7 @@ extern void app_fault_assert(const char *file, int line);
  *          and current_task_name() only calls pcTaskGetName() when this
  *          function reports taskSCHEDULER_RUNNING (DRT-002).
  */
-#define INCLUDE_xTaskGetSchedulerState      1
+#define INCLUDE_xTaskGetSchedulerState 1
 
 /**
  * xTaskGetCurrentTaskHandle() (1 = compiled).
@@ -609,7 +614,7 @@ extern void app_fault_assert(const char *file, int line);
  *          waiting for DMA transmit completion, so the interrupt callback wakes
  *          exactly that task through its notification value (DRT-011).
  */
-#define INCLUDE_xTaskGetCurrentTaskHandle   1
+#define INCLUDE_xTaskGetCurrentTaskHandle 1
 
 /**
  * uxTaskGetStackHighWaterMark() (1 = compiled).

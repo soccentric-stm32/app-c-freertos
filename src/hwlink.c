@@ -45,9 +45,9 @@
  * @brief Size of the fixed frame header in bytes: proto, flags and seq.
  * @details Also the offset at which the payload starts.
  */
-#define HWLINK_HEADER_SIZE   4U
+#define HWLINK_HEADER_SIZE 4U
 /** @brief Size of the trailing little-endian CRC-32 in bytes. */
-#define HWLINK_CRC_SIZE      4U
+#define HWLINK_CRC_SIZE 4U
 /**
  * @brief Fixed per-frame overhead in bytes, header plus CRC trailer.
  * @details The historical name "8-byte header" counts the 4-byte header and
@@ -57,7 +57,7 @@
  *          minimum legal length of a decoded frame, and the size that
  *          @ref hwlink_build_raw and @ref hwlink_decode_raw agree on.
  */
-#define HWLINK_OVERHEAD      (HWLINK_HEADER_SIZE + HWLINK_CRC_SIZE)
+#define HWLINK_OVERHEAD (HWLINK_HEADER_SIZE + HWLINK_CRC_SIZE)
 
 /**
  * @brief Build an unencoded HWLINK frame: header, payload and CRC-32.
@@ -110,16 +110,15 @@
  *        huge request is rejected instead of passing the capacity test.
  * @see hwlink_cobs_encode, hwlink_decode_raw, app_crc32
  */
-bool hwlink_build_raw(const uint8_t *payload, size_t payload_len,
-                      uint8_t flags, uint16_t seq,
-                      uint8_t *raw, size_t raw_capacity, size_t *raw_len)
+bool hwlink_build_raw(const uint8_t *payload, size_t payload_len, uint8_t flags, uint16_t seq, uint8_t *raw, size_t raw_capacity, size_t *raw_len)
 {
-    if (raw == NULL || payload == NULL || raw_len == NULL ||
-        payload_len > (HWLINK_MAX_FRAME - HWLINK_OVERHEAD)) {
+    if(raw == NULL || payload == NULL || raw_len == NULL || payload_len > (HWLINK_MAX_FRAME - HWLINK_OVERHEAD))
+    {
         return false;
     }
     size_t total = HWLINK_OVERHEAD + payload_len;
-    if (total > raw_capacity) {
+    if(total > raw_capacity)
+    {
         return false;
     }
 
@@ -129,7 +128,7 @@ bool hwlink_build_raw(const uint8_t *payload, size_t payload_len,
     raw[3] = (uint8_t)(seq >> 8U);
     memcpy(&raw[4], payload, payload_len);
 
-    uint32_t crc = app_crc32(raw, HWLINK_HEADER_SIZE + payload_len);
+    uint32_t crc                               = app_crc32(raw, HWLINK_HEADER_SIZE + payload_len);
     raw[HWLINK_HEADER_SIZE + payload_len + 0U] = (uint8_t)(crc & 0xFFU);
     raw[HWLINK_HEADER_SIZE + payload_len + 1U] = (uint8_t)((crc >> 8U) & 0xFFU);
     raw[HWLINK_HEADER_SIZE + payload_len + 2U] = (uint8_t)((crc >> 16U) & 0xFFU);
@@ -203,41 +202,50 @@ bool hwlink_build_raw(const uint8_t *payload, size_t payload_len,
  *        @ref hwlink_cobs_decode.
  * @see hwlink_cobs_decode, hwlink_build_raw, app_uart3_send
  */
-bool hwlink_cobs_encode(const uint8_t *raw, size_t raw_len,
-                        uint8_t *out, size_t out_capacity, size_t *out_len)
+bool hwlink_cobs_encode(const uint8_t *raw, size_t raw_len, uint8_t *out, size_t out_capacity, size_t *out_len)
 {
-    size_t read = 0U;
-    size_t write = 0U;
+    size_t read     = 0U;
+    size_t write    = 0U;
     size_t code_pos = 0U;
 
-    if (raw == NULL || out == NULL || out_len == NULL || raw_len == 0U) {
+    if(raw == NULL || out == NULL || out_len == NULL || raw_len == 0U)
+    {
         return false;
     }
-    if (out_capacity < 2U) {
+    if(out_capacity < 2U)
+    {
         return false;
     }
 
-    code_pos = write++;
+    code_pos      = write++;
     out[code_pos] = 1U;
 
-    while (read < raw_len) {
-        if (raw[read] == 0U) {
+    while(read < raw_len)
+    {
+        if(raw[read] == 0U)
+        {
             out[code_pos] = (uint8_t)(write - code_pos);
-            code_pos = write++;
-            if (write >= out_capacity) {
+            code_pos      = write++;
+            if(write >= out_capacity)
+            {
                 return false;
             }
             out[code_pos] = 1U;
             read++;
-        } else {
-            if (write >= out_capacity) {
+        }
+        else
+        {
+            if(write >= out_capacity)
+            {
                 return false;
             }
             out[write++] = raw[read++];
-            if ((uint8_t)(write - code_pos) == 0xFFU) {
+            if((uint8_t)(write - code_pos) == 0xFFU)
+            {
                 out[code_pos] = 0xFFU;
-                code_pos = write++;
-                if (write >= out_capacity) {
+                code_pos      = write++;
+                if(write >= out_capacity)
+                {
                     return false;
                 }
                 out[code_pos] = 1U;
@@ -246,10 +254,11 @@ bool hwlink_cobs_encode(const uint8_t *raw, size_t raw_len,
     }
 
     out[code_pos] = (uint8_t)(write - code_pos);
-    if (write >= out_capacity) {
+    if(write >= out_capacity)
+    {
         return false;
     }
-    out[write++] = 0U;   /* frame delimiter */
+    out[write++] = 0U; /* frame delimiter */
 
     *out_len = write;
     return true;
@@ -304,35 +313,41 @@ bool hwlink_cobs_encode(const uint8_t *raw, size_t raw_len,
  *        stay distinguishable from a valid zero length.
  * @see hwlink_cobs_encode, hwlink_decode_raw
  */
-int hwlink_cobs_decode(const uint8_t *in, size_t in_len,
-                       uint8_t *out, size_t out_capacity, size_t *out_len)
+int hwlink_cobs_decode(const uint8_t *in, size_t in_len, uint8_t *out, size_t out_capacity, size_t *out_len)
 {
-    size_t read = 0U;
+    size_t read  = 0U;
     size_t write = 0U;
 
-    if (in == NULL || out == NULL || out_len == NULL) {
+    if(in == NULL || out == NULL || out_len == NULL)
+    {
         return -1;
     }
 
-    while (read < in_len) {
+    while(read < in_len)
+    {
         uint8_t code = in[read++];
-        if (code == 0U) {
+        if(code == 0U)
+        {
             return -1;
         }
 
         size_t block = (size_t)code - 1U;
-        if (block > in_len - read) {
+        if(block > in_len - read)
+        {
             return -1;
         }
-        if (block > out_capacity - write) {
+        if(block > out_capacity - write)
+        {
             return -1;
         }
         memcpy(&out[write], &in[read], block);
         write += block;
         read += block;
 
-        if ((code != 0xFFU) && (read < in_len)) {
-            if (write >= out_capacity) {
+        if((code != 0xFFU) && (read < in_len))
+        {
+            if(write >= out_capacity)
+            {
                 return -1;
             }
             out[write++] = 0U;
@@ -403,38 +418,37 @@ int hwlink_cobs_decode(const uint8_t *in, size_t in_len,
  *        instead of sending a NAK, so a noisy link produces no reply traffic.
  * @see hwlink_cobs_decode, hwlink_build_raw, app_crc32
  */
-bool hwlink_decode_raw(const uint8_t *raw, size_t raw_len,
-                       uint8_t *payload, size_t payload_capacity,
-                       size_t *payload_len, uint8_t *flags, uint16_t *seq)
+bool hwlink_decode_raw(const uint8_t *raw, size_t raw_len, uint8_t *payload, size_t payload_capacity, size_t *payload_len, uint8_t *flags, uint16_t *seq)
 {
-    if (raw == NULL || payload == NULL || payload_len == NULL ||
-        flags == NULL || seq == NULL) {
+    if(raw == NULL || payload == NULL || payload_len == NULL || flags == NULL || seq == NULL)
+    {
         return false;
     }
-    if (raw_len < HWLINK_OVERHEAD || raw_len > HWLINK_MAX_FRAME) {
+    if(raw_len < HWLINK_OVERHEAD || raw_len > HWLINK_MAX_FRAME)
+    {
         return false;
     }
-    if (raw[0] != HWLINK_PROTOCOL_MAJOR || (raw[1] & ~0x03U) != 0U) {
+    if(raw[0] != HWLINK_PROTOCOL_MAJOR || (raw[1] & ~0x03U) != 0U)
+    {
         return false;
     }
 
-    size_t body_len = raw_len - HWLINK_CRC_SIZE;
-    uint32_t expected = (uint32_t)raw[body_len] |
-                        ((uint32_t)raw[body_len + 1U] << 8U) |
-                        ((uint32_t)raw[body_len + 2U] << 16U) |
-                        ((uint32_t)raw[body_len + 3U] << 24U);
-    if (app_crc32(raw, body_len) != expected) {
+    size_t   body_len = raw_len - HWLINK_CRC_SIZE;
+    uint32_t expected = (uint32_t)raw[body_len] | ((uint32_t)raw[body_len + 1U] << 8U) | ((uint32_t)raw[body_len + 2U] << 16U) | ((uint32_t)raw[body_len + 3U] << 24U);
+    if(app_crc32(raw, body_len) != expected)
+    {
         return false;
     }
 
     size_t len = body_len - HWLINK_HEADER_SIZE;
-    if (len > payload_capacity) {
+    if(len > payload_capacity)
+    {
         return false;
     }
     memcpy(payload, &raw[HWLINK_HEADER_SIZE], len);
 
     *payload_len = len;
-    *flags = raw[1];
-    *seq = (uint16_t)((uint16_t)raw[2] | ((uint16_t)raw[3] << 8U));
+    *flags       = raw[1];
+    *seq         = (uint16_t)((uint16_t)raw[2] | ((uint16_t)raw[3] << 8U));
     return true;
 }

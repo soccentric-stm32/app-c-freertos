@@ -34,14 +34,14 @@
 #include "identity.h"
 
 /** PRV1 magic word 0x31565250, the bytes "PRV1" in little-endian memory. */
-#define ID_MAGIC              0x31565250UL  /* "PRV1" little-endian */
+#define ID_MAGIC 0x31565250UL /* "PRV1" little-endian */
 
 /**
  * @brief Record format version accepted by this reader.
  * @details The only accepted value is 1.  A different format is rejected as
  *          absent rather than parsed with a compatibility fallback.
  */
-#define ID_FORMAT             1U
+#define ID_FORMAT 1U
 
 /**
  * @brief Size of the PRV1 record header in bytes.
@@ -49,7 +49,7 @@
  *          header CRC covers the first 28 bytes, so the trailing CRC field
  *          itself is excluded.
  */
-#define ID_HEADER_SIZE        32U
+#define ID_HEADER_SIZE 32U
 
 /**
  * @brief Maximum accepted TLV area length in bytes (4 KiB).
@@ -59,31 +59,31 @@
  *          @ref ID_MAX_TLV bytes before reading the TLV area, so both the
  *          header and a maximal TLV are read from flash.
  */
-#define ID_MAX_TLV            4096U
+#define ID_MAX_TLV 4096U
 
 /** Serial number TLV type (0x01), cached as a 32-character text field. */
-#define ID_T_SERIAL           0x01U
+#define ID_T_SERIAL 0x01U
 /** Product name TLV type (0x02), cached as a 32-character text field. */
-#define ID_T_PRODUCT          0x02U
+#define ID_T_PRODUCT 0x02U
 /** Hardware revision TLV type (0x03), cached as an 8-character text field. */
-#define ID_T_HW_REV           0x03U
+#define ID_T_HW_REV 0x03U
 /** Manufacturing time TLV type (0x04); recognised but skipped by this reader. */
-#define ID_T_MFG_TIME         0x04U
+#define ID_T_MFG_TIME 0x04U
 /** Station/fixture TLV type (0x05); recognised but skipped by this reader. */
-#define ID_T_STATION_FIXTURE  0x05U
+#define ID_T_STATION_FIXTURE 0x05U
 /** Provisioning profile TLV type (0x06), cached as a 64-character text field. */
-#define ID_T_PROFILE          0x06U
+#define ID_T_PROFILE 0x06U
 /** Firmware version TLV type (0x07); recognised but skipped by this reader. */
 #define ID_T_FIRMWARE_VERSION 0x07U
 /** EUI-48 MAC TLV type (0x10), cached only when its length is exactly 6. */
-#define ID_T_MAC              0x10U
+#define ID_T_MAC 0x10U
 
 /**
  * @brief Primary PRV1 record address: bank 2, 0x08104000.
  * @details This is the address the factory station programs and the first
  *          address @ref app_identity_refresh tries.
  */
-#define ID_IDENTITY_A         0x08104000UL
+#define ID_IDENTITY_A 0x08104000UL
 
 /**
  * @brief Bank-swap alias of @ref ID_IDENTITY_A (0x08004000) 0x08004000.
@@ -91,7 +91,7 @@
  *          @c SYSCFG_MEMRMP.SWP_FB.  It is tried only when the primary copy
  *          fails validation.
  */
-#define ID_IDENTITY_SWAPPED   0x08004000UL
+#define ID_IDENTITY_SWAPPED 0x08004000UL
 
 /**
  * @brief Decoded PRV1 record header, 32 bytes on flash.
@@ -101,13 +101,14 @@
  * @note @ref header_crc covers bytes 0..27, so @c header_crc32 is the only
  *       field outside the checksum.
  */
-typedef struct {
+typedef struct
+{
     uint32_t magic;        /**< @ref ID_MAGIC ("PRV1") when a record is present. */
     uint16_t format;       /**< Record format; must equal @ref ID_FORMAT. */
     uint16_t revision;     /**< Provisioning revision reported to the host. */
     uint32_t length;       /**< TLV area length in bytes, 2..@ref ID_MAX_TLV. */
     uint32_t tlv_crc32;    /**< CRC-32/ISO-HDLC of the TLV area. */
-    uint8_t uid[12];       /**< Chip UID words 0..2 in flash byte order. */
+    uint8_t  uid[12];      /**< Chip UID words 0..2 in flash byte order. */
     uint32_t header_crc32; /**< CRC-32/ISO-HDLC of header bytes 0..27. */
 } id_header_t;
 
@@ -120,15 +121,16 @@ typedef struct {
  * @note @c valid is the authority for every accessor.  Fields may hold partial
  *       data after a failed parse and must not be used directly.
  */
-typedef struct {
-    bool valid;             /**< True only after a fully validated record. */
-    uint16_t revision;      /**< Header revision, 0 when not valid. */
-    char serial[33];        /**< 0x01 TLV, up to 32 characters plus NUL. */
-    char product[33];       /**< 0x02 TLV, up to 32 characters plus NUL. */
-    char hw_revision[9];    /**< 0x03 TLV, up to 8 characters plus NUL. */
-    char profile[65];       /**< 0x06 TLV, up to 64 characters plus NUL. */
-    uint8_t mac[6];         /**< 0x10 TLV EUI-48, copied verbatim. */
-    bool mac_valid;         /**< True when a 6-byte MAC TLV was copied. */
+typedef struct
+{
+    bool     valid;          /**< True only after a fully validated record. */
+    uint16_t revision;       /**< Header revision, 0 when not valid. */
+    char     serial[33];     /**< 0x01 TLV, up to 32 characters plus NUL. */
+    char     product[33];    /**< 0x02 TLV, up to 32 characters plus NUL. */
+    char     hw_revision[9]; /**< 0x03 TLV, up to 8 characters plus NUL. */
+    char     profile[65];    /**< 0x06 TLV, up to 64 characters plus NUL. */
+    uint8_t  mac[6];         /**< 0x10 TLV EUI-48, copied verbatim. */
+    bool     mac_valid;      /**< True when a 6-byte MAC TLV was copied. */
 } app_identity_t;
 
 /** Single cached identity record; owned by this translation unit. */
@@ -155,10 +157,7 @@ static bool refreshed;
  * @note The function is pure and reentrant; it delegates to @ref app_crc32.
  * @see app_crc32, id_header_t
  */
-static uint32_t header_crc(const uint8_t *raw)
-{
-    return app_crc32(raw, 28U);
-}
+static uint32_t header_crc(const uint8_t *raw) { return app_crc32(raw, 28U); }
 
 /**
  * @brief Copy a TLV value into a fixed-size NUL-terminated text buffer.
@@ -180,7 +179,8 @@ static uint32_t header_crc(const uint8_t *raw)
 static void copy_text(char *out, size_t cap, const uint8_t *data, uint8_t length)
 {
     size_t n = length;
-    if (n >= cap) {
+    if(n >= cap)
+    {
         n = cap - 1U;
     }
     memcpy(out, data, n);
@@ -238,83 +238,83 @@ static void copy_text(char *out, size_t cap, const uint8_t *data, uint8_t length
  */
 static bool parse_from(uint32_t address)
 {
-    uint8_t raw[ID_HEADER_SIZE];
+    uint8_t         raw[ID_HEADER_SIZE];
     const uint32_t *words = (const uint32_t *)address;
 
     SCB_InvalidateDCache_by_Addr((uint32_t *)address, ID_HEADER_SIZE);
     memcpy(raw, (const void *)address, sizeof(raw));
-    if (words[0] != ID_MAGIC) {
+    if(words[0] != ID_MAGIC)
+    {
         return false;
     }
 
     id_header_t header;
     memcpy(&header, raw, sizeof(header));
-    if (header.format != ID_FORMAT || header.length == 0U ||
-        header.length > ID_MAX_TLV || header.length < 2U) {
+    if(header.format != ID_FORMAT || header.length == 0U || header.length > ID_MAX_TLV || header.length < 2U)
+    {
         return false;
     }
-    if (header_crc(raw) != header.header_crc32) {
+    if(header_crc(raw) != header.header_crc32)
+    {
         return false;
     }
 
     /* UID binding: the record has the three UID words in flash byte order. */
-    uint8_t uid[12];
-    uint32_t uid_words[3] = { HAL_GetUIDw0(), HAL_GetUIDw1(), HAL_GetUIDw2() };
+    uint8_t  uid[12];
+    uint32_t uid_words[3] = {HAL_GetUIDw0(), HAL_GetUIDw1(), HAL_GetUIDw2()};
     memcpy(uid, uid_words, sizeof(uid));
-    if (memcmp(uid, header.uid, sizeof(uid)) != 0) {
+    if(memcmp(uid, header.uid, sizeof(uid)) != 0)
+    {
         return false;
     }
 
     /* The header is valid, so read the TLV area.  Invalidate the fixed full
      * window first: a shorter length-based invalidation could leave stale tail
      * bytes in cache. */
-    SCB_InvalidateDCache_by_Addr((uint32_t *)address,
-                                 ID_HEADER_SIZE + ID_MAX_TLV);
+    SCB_InvalidateDCache_by_Addr((uint32_t *)address, ID_HEADER_SIZE + ID_MAX_TLV);
     const uint8_t *tlv = (const uint8_t *)(address + ID_HEADER_SIZE);
-    if (app_crc32(tlv, header.length) != header.tlv_crc32) {
+    if(app_crc32(tlv, header.length) != header.tlv_crc32)
+    {
         return false;
     }
 
     memset(&identity, 0, sizeof(identity));
     identity.revision = header.revision;
-    size_t offset = 0U;
-    while (offset + 2U <= header.length) {
-        uint8_t type = tlv[offset];
+    size_t offset     = 0U;
+    while(offset + 2U <= header.length)
+    {
+        uint8_t type   = tlv[offset];
         uint8_t length = tlv[offset + 1U];
         offset += 2U;
-        if (type == 0U) {
+        if(type == 0U)
+        {
             break;
         }
-        if (offset + length > header.length) {
+        if(offset + length > header.length)
+        {
             return false;
         }
         const uint8_t *value = &tlv[offset];
-        switch (type) {
-        case ID_T_SERIAL:
-            copy_text(identity.serial, sizeof(identity.serial), value, length);
-            break;
-        case ID_T_PRODUCT:
-            copy_text(identity.product, sizeof(identity.product), value, length);
-            break;
-        case ID_T_HW_REV:
-            copy_text(identity.hw_revision, sizeof(identity.hw_revision), value, length);
-            break;
-        case ID_T_PROFILE:
-            copy_text(identity.profile, sizeof(identity.profile), value, length);
-            break;
+        switch(type)
+        {
+        case ID_T_SERIAL: copy_text(identity.serial, sizeof(identity.serial), value, length); break;
+        case ID_T_PRODUCT: copy_text(identity.product, sizeof(identity.product), value, length); break;
+        case ID_T_HW_REV: copy_text(identity.hw_revision, sizeof(identity.hw_revision), value, length); break;
+        case ID_T_PROFILE: copy_text(identity.profile, sizeof(identity.profile), value, length); break;
         case ID_T_MAC:
-            if (length == 6U) {
+            if(length == 6U)
+            {
                 memcpy(identity.mac, value, 6U);
                 identity.mac_valid = true;
             }
             break;
-        default:
-            break;
+        default: break;
         }
         offset += length;
     }
 
-    if (identity.serial[0] == '\0' || identity.product[0] == '\0') {
+    if(identity.serial[0] == '\0' || identity.product[0] == '\0')
+    {
         return false;
     }
     identity.valid = true;
@@ -349,7 +349,8 @@ bool app_identity_refresh(void)
 {
     refreshed = true;
     memset(&identity, 0, sizeof(identity));
-    if (parse_from(ID_IDENTITY_A)) {
+    if(parse_from(ID_IDENTITY_A))
+    {
         return true;
     }
     return parse_from(ID_IDENTITY_SWAPPED);
@@ -371,7 +372,8 @@ bool app_identity_refresh(void)
  */
 static bool ensure_loaded(void)
 {
-    if (!refreshed) {
+    if(!refreshed)
+    {
         (void)app_identity_refresh();
     }
     return identity.valid;
@@ -390,10 +392,7 @@ static bool ensure_loaded(void)
  *       until @ref app_identity_refresh is called.
  * @see ensure_loaded, app_identity_refresh
  */
-bool app_identity_valid(void)
-{
-    return ensure_loaded();
-}
+bool app_identity_valid(void) { return ensure_loaded(); }
 
 /**
  * @brief Return the provisioned serial number.
@@ -408,10 +407,7 @@ bool app_identity_valid(void)
  *       @ref app_identity_refresh.
  * @see app_identity_product, app_identity_detail
  */
-const char *app_identity_serial(void)
-{
-    return ensure_loaded() ? identity.serial : "";
-}
+const char *app_identity_serial(void) { return ensure_loaded() ? identity.serial : ""; }
 
 /**
  * @brief Return the provisioned product name.
@@ -427,10 +423,7 @@ const char *app_identity_serial(void)
  *       @ref app_identity_refresh.
  * @see app_identity_serial, app_identity_detail
  */
-const char *app_identity_product(void)
-{
-    return ensure_loaded() ? identity.product : "";
-}
+const char *app_identity_product(void) { return ensure_loaded() ? identity.product : ""; }
 
 /**
  * @brief Return the hardware revision string of the provisioned assembly.
@@ -446,10 +439,7 @@ const char *app_identity_product(void)
  *       @ref app_identity_refresh.
  * @see app_identity_profile, app_identity_detail
  */
-const char *app_identity_hw_revision(void)
-{
-    return ensure_loaded() ? identity.hw_revision : "";
-}
+const char *app_identity_hw_revision(void) { return ensure_loaded() ? identity.hw_revision : ""; }
 
 /**
  * @brief Return the provisioning profile name.
@@ -465,10 +455,7 @@ const char *app_identity_hw_revision(void)
  *       @ref app_identity_refresh.
  * @see app_identity_hw_revision, app_identity_detail
  */
-const char *app_identity_profile(void)
-{
-    return ensure_loaded() ? identity.profile : "";
-}
+const char *app_identity_profile(void) { return ensure_loaded() ? identity.profile : ""; }
 
 /**
  * @brief Return the provisioning record revision.
@@ -485,10 +472,7 @@ const char *app_identity_profile(void)
  *          @ref app_identity_valid first when that matters.
  * @see app_identity_valid, app_identity_detail
  */
-uint16_t app_identity_revision(void)
-{
-    return ensure_loaded() ? identity.revision : 0U;
-}
+uint16_t app_identity_revision(void) { return ensure_loaded() ? identity.revision : 0U; }
 
 /**
  * @brief Copy the provisioned EUI-48 into a caller buffer.
@@ -514,7 +498,8 @@ uint16_t app_identity_revision(void)
  */
 bool app_identity_mac(uint8_t mac[6])
 {
-    if (!ensure_loaded() || !identity.mac_valid) {
+    if(!ensure_loaded() || !identity.mac_valid)
+    {
         return false;
     }
     memcpy(mac, identity.mac, 6U);
@@ -543,7 +528,8 @@ bool app_identity_mac(uint8_t mac[6])
  */
 static size_t append_text(char *out, size_t cap, size_t pos, const char *text)
 {
-    while (text != NULL && *text != '\0' && pos + 1U < cap) {
+    while(text != NULL && *text != '\0' && pos + 1U < cap)
+    {
         out[pos++] = *text++;
     }
     out[pos] = '\0';
@@ -573,13 +559,15 @@ static size_t append_text(char *out, size_t cap, size_t pos, const char *text)
  */
 static size_t append_uint(char *out, size_t cap, size_t pos, unsigned value)
 {
-    char digits[10];
+    char   digits[10];
     size_t count = 0U;
-    do {
+    do
+    {
         digits[count++] = (char)('0' + (value % 10U));
         value /= 10U;
-    } while (value != 0U && count < sizeof(digits));
-    while (count > 0U && pos + 1U < cap) {
+    } while(value != 0U && count < sizeof(digits));
+    while(count > 0U && pos + 1U < cap)
+    {
         out[pos++] = digits[--count];
     }
     out[pos] = '\0';
@@ -610,8 +598,10 @@ static size_t append_uint(char *out, size_t cap, size_t pos, unsigned value)
 static size_t append_mac(char *out, size_t cap, size_t pos)
 {
     static const char hex[] = "0123456789ABCDEF"; /**< Uppercase hex digits. */
-    for (size_t i = 0U; i < 6U && pos + 3U < cap; i++) {
-        if (i != 0U) {
+    for(size_t i = 0U; i < 6U && pos + 3U < cap; i++)
+    {
+        if(i != 0U)
+        {
             out[pos++] = ':';
         }
         out[pos++] = hex[(identity.mac[i] >> 4U) & 0xFU];
@@ -656,19 +646,22 @@ static size_t append_mac(char *out, size_t cap, size_t pos)
  */
 bool app_identity_detail(char *out, size_t capacity)
 {
-    if (out == NULL || capacity == 0U) {
+    if(out == NULL || capacity == 0U)
+    {
         return false;
     }
     out[0] = '\0';
-    if (!ensure_loaded()) {
+    if(!ensure_loaded())
+    {
         (void)append_text(out, capacity, 0U, "no identity");
         return false;
     }
     size_t pos = 0U;
-    pos = append_text(out, capacity, pos, "PRV1 serial=");
-    pos = append_text(out, capacity, pos, identity.serial);
-    pos = append_text(out, capacity, pos, ";mac=");
-    if (identity.mac_valid) {
+    pos        = append_text(out, capacity, pos, "PRV1 serial=");
+    pos        = append_text(out, capacity, pos, identity.serial);
+    pos        = append_text(out, capacity, pos, ";mac=");
+    if(identity.mac_valid)
+    {
         pos = append_mac(out, capacity, pos);
     }
     pos = append_text(out, capacity, pos, ";hw=");
