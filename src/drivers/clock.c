@@ -38,8 +38,8 @@
 
 #include "stm32f7xx_hal.h"
 #include "app_board.h"
-#include "app_fault.h"
-#include "clock.h"
+#include "services/app_fault.h"
+#include "drivers/clock.h"
 
 /**
  * @brief   Latch a clock set-up failure as a start-up fault and reset.

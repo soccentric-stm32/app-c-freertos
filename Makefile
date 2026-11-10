@@ -52,7 +52,7 @@ CLANG_FORMAT ?= clang-format
 
 # Hand-written sources only; generated headers and third_party are not
 # formatted here.
-FORMAT_SOURCES := $(wildcard src/*.c src/*.h board/*.c board/*.h)
+FORMAT_SOURCES := $(shell find src board -type f \( -name '*.c' -o -name '*.h' \) -not -path 'src/generated/*')
 
 .DEFAULT_GOAL := build
 

@@ -29,7 +29,7 @@
  */
 
 #include <string.h>
-#include "flatcc_port.h"
+#include "protocol/flatcc_port.h"
 
 /**
  * @brief Fallback size of the static flatcc arena in bytes.

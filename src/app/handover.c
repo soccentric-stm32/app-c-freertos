@@ -27,8 +27,8 @@
  */
 
 #include "stm32f7xx_hal.h"
-#include "boot_contract.h"
-#include "handover.h"
+#include "services/boot_contract.h"
+#include "app/handover.h"
 
 /**
  * @brief Decoded hand-over record shared by every task after start-up.

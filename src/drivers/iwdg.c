@@ -70,7 +70,7 @@
 
 #include <stdbool.h>
 #include "stm32f7xx_hal.h"
-#include "iwdg.h"
+#include "drivers/iwdg.h"
 
 /**
  * @brief IWDG register access key, written to `IWDG->KR` as 0x5555.

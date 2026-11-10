@@ -33,7 +33,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include "app_fault.h"
+#include "services/app_fault.h"
 
 /**
  * @brief Resolve the task or stage name to record for the failing context.

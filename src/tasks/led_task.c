@@ -48,10 +48,10 @@
 #include "task.h"
 #include "queue.h"
 #include "app_board.h"
-#include "app_error.h"
-#include "comms_task.h"
-#include "health_task.h"
-#include "led_task.h"
+#include "services/app_error.h"
+#include "tasks/comms_task.h"
+#include "tasks/health_task.h"
+#include "tasks/led_task.h"
 
 /**
  * @brief Stack depth of the LED task in words (384 words, 1536 bytes).

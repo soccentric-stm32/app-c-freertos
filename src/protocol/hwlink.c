@@ -38,8 +38,8 @@
  */
 
 #include <string.h>
-#include "crc32.h"
-#include "hwlink.h"
+#include "services/crc32.h"
+#include "protocol/hwlink.h"
 
 /**
  * @brief Size of the fixed frame header in bytes: proto, flags and seq.

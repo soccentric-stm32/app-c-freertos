@@ -43,7 +43,7 @@
  */
 
 #include "stm32f7xx_hal.h"
-#include "cache_mpu.h"
+#include "drivers/cache_mpu.h"
 
 /**
  * @brief MPU region number that describes the non-cacheable DMA window.

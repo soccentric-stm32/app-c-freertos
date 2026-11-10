@@ -88,7 +88,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 add_compile_options(${CPU_FLAGS} -Wall -Wextra -Werror -ffunction-sections -fdata-sections)
 # flatcc runtime allocation hooks (DRT-004) must be visible wherever the
 # runtime headers expand FLATCC_ALLOC.  Applied to C sources only.
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include ${CMAKE_SOURCE_DIR}/src/flatcc_port.h")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include ${CMAKE_SOURCE_DIR}/src/protocol/flatcc_port.h")
 # No stdio and no libc heap (FreeRTOS heap_4 is static), so no syscall layer
 # is linked.
 add_link_options(${CPU_FLAGS} -Wl,--gc-sections -Wl,--cref
@@ -153,31 +153,38 @@ set(HAL_SOURCES
 
 # The generated flatcc headers use compact macro formatting that trips
 # -Wmisleading-indentation in the one translation unit that includes them.
-set_source_files_properties(src/comms_task.c PROPERTIES
+set_source_files_properties(src/tasks/comms_task.c PROPERTIES
     COMPILE_OPTIONS "-Wno-misleading-indentation")
 
+# src/ is grouped by responsibility; every translation unit includes its
+# headers relative to src/, which stays on the include path.
 set(PROJECT_SOURCES
-    src/main.c
-    src/clock.c
-    src/hal_timebase.c
-    src/cache_mpu.c
-    src/crc32.c
-    src/identity.c
-    src/hwlink.c
-    src/flatcc_port.c
-    src/app_error.c
-    src/app_fault.c
-    src/app_log.c
-    src/reset_cause.c
-    src/iwdg.c
-    src/handover.c
-    src/flash_confirm.c
-    src/uart3.c
-    src/led_task.c
-    src/button_task.c
-    src/health_task.c
-    src/comms_task.c
-    src/rtos_hooks.c)
+    # Application entry and RTOS glue
+    src/app/main.c
+    src/app/rtos_hooks.c
+    src/app/handover.c
+    # FreeRTOS tasks
+    src/tasks/led_task.c
+    src/tasks/button_task.c
+    src/tasks/health_task.c
+    src/tasks/comms_task.c
+    # Drivers and platform bring-up
+    src/drivers/clock.c
+    src/drivers/hal_timebase.c
+    src/drivers/cache_mpu.c
+    src/drivers/iwdg.c
+    src/drivers/uart3.c
+    # Services: logging, faults, identity, flash confirmation
+    src/services/app_error.c
+    src/services/app_fault.c
+    src/services/app_log.c
+    src/services/reset_cause.c
+    src/services/flash_confirm.c
+    src/services/identity.c
+    src/services/crc32.c
+    # Protocol: HWLINK framing and flatcc port
+    src/protocol/hwlink.c
+    src/protocol/flatcc_port.c)
 
 set(DEVICE_SOURCES
     "${CUBE_ROOT}/Drivers/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.c"

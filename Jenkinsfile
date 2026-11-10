@@ -107,14 +107,14 @@ expected = {
 }
 
 defines = {}
-for line in Path("src/boot_contract.h").read_text(encoding="utf-8").splitlines():
+for line in Path("src/services/boot_contract.h").read_text(encoding="utf-8").splitlines():
     parts = line.split()
     if len(parts) >= 3 and parts[0] == "#define":
         defines[parts[1]] = parts[2]
 
 for name, want in expected.items():
     if name not in defines:
-        raise SystemExit(f"boot contract: {name} is missing from src/boot_contract.h")
+        raise SystemExit(f"boot contract: {name} is missing from src/services/boot_contract.h")
     raw = defines[name].rstrip("ULul").rstrip("ULul")
     got = int(raw, 16)
     if got != want:

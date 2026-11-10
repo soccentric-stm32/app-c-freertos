@@ -37,7 +37,7 @@
  * @ingroup crc32
  */
 
-#include "crc32.h"
+#include "services/crc32.h"
 
 /**
  * @brief Compute the CRC-32/ISO-HDLC checksum of a byte buffer.

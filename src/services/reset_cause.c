@@ -22,7 +22,7 @@
  */
 
 #include "stm32f7xx_hal.h"
-#include "reset_cause.h"
+#include "services/reset_cause.h"
 
 /**
  * @brief Reset flags read from @c RCC_CSR at start-up, kept for Status.

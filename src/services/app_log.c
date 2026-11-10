@@ -59,7 +59,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "stm32f7xx_hal.h"
-#include "app_log.h"
+#include "services/app_log.h"
 
 /**
  * @brief USART6 baud rate in bit/s.

@@ -60,7 +60,7 @@
 #include "stm32f7xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "uart3.h"
+#include "drivers/uart3.h"
 
 /**
  * @brief Size of the circular DMA receive ring, in bytes (COM-002).

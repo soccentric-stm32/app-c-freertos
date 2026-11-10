@@ -30,5 +30,5 @@ Checks: >
   -performance-weak-try-catch
 
 # Restrict findings to the project's own sources and headers.
-HeaderFilterRegex: '(^|/)(src|board|tests)/[^/]+\.[chs]$'
+HeaderFilterRegex: '(^|/)((src/(app|drivers|protocol|services|tasks)|board|tests)/[^/]+)\.[chs]$'
 FormatStyle: none

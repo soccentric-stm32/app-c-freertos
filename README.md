@@ -32,6 +32,27 @@ make flash                    # upload build/demo.img through the bootloader
 make help                     # list all targets
 ```
 
+## Repository layout
+
+```
+board/            board headers (pins, FreeRTOSConfig, HAL config)
+ld/               linker script
+protocol/         HWLINK FlatBuffers schema (hwlink.fbs)
+third_party/      vendored flatcc runtime
+src/
+  app/            entry point, RTOS hooks, BOOT hand-over record
+  tasks/          Health, Comms, Button and LED FreeRTOS tasks
+  drivers/        clock, time base, cache/MPU, watchdog and USART3 drivers
+  services/       logging, fault record, reset cause, identity, flash
+                  confirmation and CRC32
+  protocol/       HWLINK framing and the flatcc static-arena port
+  generated/      flatcc output for protocol/hwlink.fbs (checked in)
+```
+
+Headers are included relative to `src/` (for example
+`#include "tasks/led_task.h"`), so `src/` stays the single include root and the
+folder name tells you which layer a module belongs to.
+
 ## Related projects
 
 - [bootloader](https://github.com/soccentric-stm32/bootloader) — A/B bootloader with UART update, CRC32 checks, trial boot and rollback

@@ -49,8 +49,8 @@
 
 #include "stm32f7xx_hal.h"
 #include "app_board.h"
-#include "app_fault.h"
-#include "boot_contract.h"
+#include "services/app_fault.h"
+#include "services/boot_contract.h"
 
 /**
  * @brief The retained fault record, published to the whole application.

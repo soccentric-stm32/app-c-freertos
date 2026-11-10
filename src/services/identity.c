@@ -30,8 +30,8 @@
 
 #include <string.h>
 #include "stm32f7xx_hal.h"
-#include "crc32.h"
-#include "identity.h"
+#include "services/crc32.h"
+#include "services/identity.h"
 
 /** PRV1 magic word 0x31565250, the bytes "PRV1" in little-endian memory. */
 #define ID_MAGIC 0x31565250UL /* "PRV1" little-endian */

@@ -25,7 +25,7 @@
  */
 
 #include "stm32f7xx_hal.h"
-#include "app_error.h"
+#include "services/app_error.h"
 
 /**
  * @brief Definition of the global latched error mask.

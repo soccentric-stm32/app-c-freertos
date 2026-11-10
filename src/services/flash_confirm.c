@@ -57,9 +57,9 @@
  */
 
 #include "stm32f7xx_hal.h"
-#include "boot_contract.h"
-#include "crc32.h"
-#include "flash_confirm.h"
+#include "services/boot_contract.h"
+#include "services/crc32.h"
+#include "services/flash_confirm.h"
 
 /**
  * @brief Number of 32-bit words in one Appendix B metadata record: 8.

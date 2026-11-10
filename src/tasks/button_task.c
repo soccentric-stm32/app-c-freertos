@@ -22,14 +22,14 @@
  * @ingroup button_task
  */
 
-#include "app_log.h"
+#include "services/app_log.h"
 #include "stm32f7xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "app_board.h"
-#include "health_task.h"
-#include "led_task.h"
-#include "button_task.h"
+#include "tasks/health_task.h"
+#include "tasks/led_task.h"
+#include "tasks/button_task.h"
 
 #define BUTTON_TASK_STACK_WORDS 384U /**< Stack depth in words, sized for app_log(). */
 
