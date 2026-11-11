@@ -57,6 +57,7 @@
 
 #include <string.h>
 #include "services/app_log.h"
+#include "services/task_report.h"
 #include "stm32f7xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -1406,9 +1407,11 @@ static void comms_task(void *arg)
     (void)arg;
     comms_event_t event;
     uint32_t      last_checkin = xTaskGetTickCount();
+    task_report_t report       = {0U, 0U};
 
     for(;;)
     {
+        task_report(&report, 4U, "Comms", "serves HWLINK on USART3: info, identity, button and LED commands");
         if(xQueueReceive(comms_queue, &event, pdMS_TO_TICKS(COMMS_LOOP_MS)) == pdPASS)
         {
             do

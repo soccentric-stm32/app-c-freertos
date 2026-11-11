@@ -57,6 +57,7 @@
 #include "services/app_fault.h"
 #include "services/boot_contract.h"
 #include "services/app_log.h"
+#include "services/task_report.h"
 #include "services/flash_confirm.h"
 #include "app/handover.h"
 #include "tasks/health_task.h"
@@ -537,9 +538,12 @@ static void health_task(void *arg)
         LOG_I("health: on trial, check in %u ms", (unsigned)HEALTH_CHECK_AT_MS);
     }
 
+    task_report_t report = {0U, 0U};
+
     for(;;)
     {
         uint32_t bits = 0U;
+        task_report(&report, 3U, "Health", "watches task check-ins, kicks the watchdog, confirms the slot");
         (void)xTaskNotifyWait(0U, 0xFFFFFFFFUL, &bits, pdMS_TO_TICKS(HEALTH_LOOP_MS));
         now = xTaskGetTickCount();
         checkin_account(bits, now);

@@ -178,6 +178,7 @@ set(PROJECT_SOURCES
     src/services/app_error.c
     src/services/app_fault.c
     src/services/app_log.c
+    src/services/task_report.c
     src/services/reset_cause.c
     src/services/flash_confirm.c
     src/services/identity.c

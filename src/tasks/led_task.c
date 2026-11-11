@@ -49,6 +49,7 @@
 #include "queue.h"
 #include "app_board.h"
 #include "services/app_error.h"
+#include "services/task_report.h"
 #include "tasks/comms_task.h"
 #include "tasks/health_task.h"
 #include "tasks/led_task.h"
@@ -789,6 +790,7 @@ static void led_task(void *arg)
     cfg[2].start          = now;
     uint32_t error_flags  = app_error_flags;
     uint32_t last_checkin = now;
+    task_report_t report  = {0U, 0U};
 
     for(;;)
     {
@@ -848,6 +850,8 @@ static void led_task(void *arg)
         {
             wait = 1U;
         }
+
+        task_report(&report, 1U, "LED", "drives LD1-LD3 patterns, LD3 shows health and fault state");
 
         led_msg_t msg;
         if(xQueueReceive(led_queue, &msg, pdMS_TO_TICKS(wait)) == pdPASS)
