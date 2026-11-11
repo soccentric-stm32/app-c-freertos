@@ -260,14 +260,14 @@ static bool rx_enc_overflow;
 /** @brief Decoded, still CRC-unchecked frame from @ref hwlink_cobs_decode. */
 static uint8_t rx_raw[HWLINK_MAX_FRAME];
 /** @brief Payload copy produced by @ref hwlink_decode_raw, then verified. */
-static uint8_t rx_payload[HWLINK_MAX_FRAME];
+static uint8_t rx_payload[HWLINK_MAX_FRAME] __attribute__((aligned(8)));
 /**
  * @brief Payload staging for outgoing messages.
  * @details flatcc hands out a pointer into its own arena; the bytes are copied
  *          here and the builder is reset before the frame is wrapped, so the
  *          arena is free again while the reply is being transmitted.
  */
-static uint8_t build_payload[HWLINK_MAX_FRAME];
+static uint8_t build_payload[HWLINK_MAX_FRAME] __attribute__((aligned(8)));
 /** @brief Unencoded outgoing frame built by @ref hwlink_build_raw. */
 static uint8_t raw_tx[HWLINK_MAX_FRAME];
 
