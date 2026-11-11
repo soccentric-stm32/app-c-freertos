@@ -2,6 +2,8 @@
 
 A FreeRTOS demo application in C for the NUCLEO-F767ZI that runs under the A/B bootloader. It drives the on-board LEDs in selectable patterns, reads the user button, talks to the desktop GUI over UART with the HWLINK protocol, supervises its tasks with the watchdog and confirms itself to the bootloader after a health check. It is the reference implementation that the Rust and Zephyr versions match, and the template for starting a new product application on this platform.
 
+[![The C FreeRTOS application starting on the board](https://raw.githubusercontent.com/soccentric-stm32/soccentric-stm32.github.io/main/assets/shots/term-app-c.webp)](https://soccentric-stm32.github.io/#app-c)
+
 ## Features
 
 - Runs from either bootloader slot, linked at `0x0800C000`
