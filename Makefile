@@ -45,7 +45,11 @@ ELF        := $(BUILD_DIR)/app.elf
 IMAGE      := $(BUILD_DIR)/demo.img
 DEV        := scripts/docker-dev.sh
 OPENOCD    := openocd -f board/st_nucleo_f7.cfg
-BOOTCTL    ?= ../bootloader/tools/bootctl.py
+BOOTCTL    ?= $(firstword $(wildcard ../bootloader/tools/bootctl.py ../../bootloader/bootloader/tools/bootctl.py) ../bootloader/tools/bootctl.py)
+BOOT_DIR   ?= $(patsubst %/tools/bootctl.py,%,$(BOOTCTL))
+SIGN_KEY   ?= $(BOOT_DIR)/keys/dev-signing-key.pem
+SECURITY_COUNTER ?= 3
+SIGNED     := $(IMAGE:.img=-signed.img)
 PORT       ?=
 PYTHON     ?= python3
 CLANG_FORMAT ?= clang-format
@@ -101,7 +105,10 @@ format:
 flash: build
 	@test -f $(IMAGE) || { echo "error: $(IMAGE) not found, run make build"; exit 1; }
 	@test -f $(BOOTCTL) || { echo "error: $(BOOTCTL) not found; set BOOTCTL=/path/to/bootctl.py"; exit 1; }
-	$(PYTHON) $(BOOTCTL) $(if $(PORT),--port $(PORT),) update $(IMAGE) --activate
+	@test -f $(SIGN_KEY) || { echo "error: $(SIGN_KEY) not found; set SIGN_KEY=/path/to/key.pem"; exit 1; }
+	$(PYTHON) $(BOOT_DIR)/tools/mkimage.py --sign $(IMAGE) --key $(SIGN_KEY) \
+		--security-counter $(SECURITY_COUNTER) --output $(SIGNED)
+	$(PYTHON) $(BOOTCTL) $(if $(PORT),--port $(PORT),) update $(SIGNED) --activate
 
 ERASE_CMD = $(if $(filter 1,$(NATIVE)),$(OPENOCD) -c "init; reset halt; flash erase_sector 0 0 last; exit",$(DEV) erase)
 
