@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="864" height="550" viewBox="0 0 864 550" role="img" aria-label="Debug terminal output">
+<rect width="864" height="550" rx="10" fill="#0d1117"/>
+<path d="M0 10a10 10 0 0 1 10-10h844a10 10 0 0 1 10 10v26H0z" fill="#161b22"/>
+<circle cx="22" cy="18" r="6" fill="#ff5f56"/><circle cx="42" cy="18" r="6" fill="#ffbd2e"/><circle cx="62" cy="18" r="6" fill="#27c93f"/>
+<text x="432.0" y="23" text-anchor="middle" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12.5" fill="#8b949e">app-c-freertos — USART6 115200 8N1</text>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="13.5" xml:space="preserve">
+<text x="20" y="62"><tspan fill="#7ee787">$ </tspan><tspan fill="#e6edf3">make flash PORT=/dev/ttyACM0</tspan></text>
+<text x="20" y="82"><tspan fill="#c9d1d9">Activate: ok, device is resetting</tspan></text>
+<text x="20" y="102"><tspan fill="#6e7681">[      0]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">start v0.1.0 d389f50d03e7, reset 0x14000000</tspan></text>
+<text x="20" y="122"><tspan fill="#6e7681">[      5]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">init: clock 216 MHz, PLL locked</tspan></text>
+<text x="20" y="142"><tspan fill="#6e7681">[      9]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">init: HWLINK on USART3, 115200 8N1</tspan></text>
+<text x="20" y="162"><tspan fill="#6e7681">[     14]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">scan: searching for an application</tspan></text>
+<text x="20" y="182"><tspan fill="#6e7681">[    334]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">init: flash dual bank, writes enabled</tspan></text>
+<text x="20" y="202"><tspan fill="#6e7681">[    339]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">slot A: ok, pending</tspan></text>
+<text x="20" y="222"><tspan fill="#6e7681">[    342]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">slot B: ok, confirmed</tspan></text>
+<text x="20" y="242"><tspan fill="#6e7681">[    346]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">sel: slot A on trial, count 0</tspan></text>
+<text x="20" y="262"><tspan fill="#6e7681">[    350]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">listen: 500 ms for a host</tspan></text>
+<text x="20" y="282"><tspan fill="#6e7681">[    854]</tspan> <tspan fill="#e3b341" font-weight="bold">BOOT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">boot slot A, trial 1</tspan></text>
+<text x="20" y="302"><tspan fill="#6e7681">[      1]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">start v0.1.0 3ff655da981d, slot A on trial, reset software</tspan></text>
+<text x="20" y="322"><tspan fill="#6e7681">[      1]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">health: on trial, check in 5000 ms</tspan></text>
+<text x="20" y="342"><tspan fill="#6e7681">[      1]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">task 3 Health: watches task check-ins, kicks the watchdog, confirms the slot</tspan></text>
+<text x="20" y="362"><tspan fill="#6e7681">[      1]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">task 4 Comms: serves HWLINK on USART3: info, identity, button and LED commands</tspan></text>
+<text x="20" y="382"><tspan fill="#6e7681">[      1]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">task 2 Button: debounces B1, short press cycles the LED pattern, long press resets it</tspan></text>
+<text x="20" y="402"><tspan fill="#6e7681">[      1]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">task 1 LED: drives LD1-LD3 patterns, LD3 shows health and fault state</tspan></text>
+<text x="20" y="422"><tspan fill="#6e7681" font-style="italic">[ ... 16 lines omitted: the same task lines, once a second ... ]</tspan></text>
+<text x="20" y="442"><tspan fill="#6e7681">[   5001]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#7ee787">health: passed, CONFIRMED written</tspan></text>
+<text x="20" y="462"><tspan fill="#6e7681">[   5001]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">task 3 Health: watches task check-ins, kicks the watchdog, confirms the slot</tspan></text>
+<text x="20" y="482"><tspan fill="#6e7681">[   5001]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">task 4 Comms: serves HWLINK on USART3: info, identity, button and LED commands</tspan></text>
+<text x="20" y="502"><tspan fill="#6e7681">[   5001]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">task 2 Button: debounces B1, short press cycles the LED pattern, long press resets it</tspan></text>
+<text x="20" y="522"><tspan fill="#6e7681">[   5001]</tspan> <tspan fill="#79c0ff" font-weight="bold">C-FRT</tspan> <tspan fill="#7ee787">I</tspan> <tspan fill="#c9d1d9">task 1 LED: drives LD1-LD3 patterns, LD3 shows health and fault state</tspan></text>
+</g></svg>
